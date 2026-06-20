@@ -143,6 +143,9 @@ router.get('/:appUuid/group', async (req, res) => {
       if (req.query.from) matchStage.timestamp.$gte = new Date(req.query.from);
       if (req.query.to) matchStage.timestamp.$lte = new Date(req.query.to);
     }
+    if (req.query.level) matchStage.level = req.query.level;
+    if (req.query.tag) matchStage.tags = req.query.tag;
+    if (req.query.search) matchStage.message = { $regex: req.query.search, $options: 'i' };
 
     let groupField;
     if (by === 'level') {

@@ -32,6 +32,9 @@ export const getLogGroups = (appId, filters = {}) => {
   if (filters.metaKey) params.metaKey = filters.metaKey;
   if (filters.from) params.from = filters.from;
   if (filters.to) params.to = filters.to;
+  if (filters.level) params.level = filters.level;
+  if (filters.search) params.search = filters.search;
+  if (filters.tag) params.tag = filters.tag;
 
   return client.get(`/api/logs/${appId}/group`, { params }).then((r) => r.data);
 };

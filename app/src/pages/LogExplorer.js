@@ -29,8 +29,8 @@ const defaultFilters = {
 
 function GroupView({ appUuid, groupBy, metaKey, filters, onDrillDown }) {
   const { data: groups, isLoading } = useQuery({
-    queryKey: ['logGroups', appUuid, groupBy, metaKey, filters.from, filters.to],
-    queryFn: () => getLogGroups(appUuid, { by: groupBy, metaKey, from: filters.from, to: filters.to }),
+    queryKey: ['logGroups', appUuid, groupBy, metaKey, filters.from, filters.to, filters.level, filters.search, filters.tag],
+    queryFn: () => getLogGroups(appUuid, { by: groupBy, metaKey, from: filters.from, to: filters.to, level: filters.level, search: filters.search, tag: filters.tag }),
     enabled: !!appUuid && !!groupBy && (groupBy !== 'metadata' || !!metaKey),
   });
 
