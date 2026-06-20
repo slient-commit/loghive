@@ -14,7 +14,8 @@ router.get('/', async (req, res) => {
     const org = await Organization.findByPk(req.user.organization_id);
     res.json(org);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Org]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -26,7 +27,8 @@ router.put('/', authorize('org_admin'), async (req, res) => {
     await org.update({ name, slug });
     res.json(org);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('[Org]', error.message);
+    res.status(400).json({ error: 'Invalid request' });
   }
 });
 
@@ -39,7 +41,8 @@ router.get('/members', async (req, res) => {
     });
     res.json(members);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Org]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -84,7 +87,8 @@ router.post('/members', authorize('org_admin'), async (req, res) => {
       status: user.status,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('[Org]', error.message);
+    res.status(400).json({ error: 'Invalid request' });
   }
 });
 

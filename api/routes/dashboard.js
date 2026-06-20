@@ -60,7 +60,8 @@ router.get('/overview', async (req, res) => {
       appActivity,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Dashboard]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -123,7 +124,8 @@ router.get('/logs-over-time', async (req, res) => {
 
     res.json({ period, labelFormat, data: Object.values(bucketMap).sort((a, b) => a.bucket.localeCompare(b.bucket)) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Dashboard]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -163,7 +165,8 @@ router.get('/app-health', async (req, res) => {
 
     res.json(health);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Dashboard]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -205,7 +208,8 @@ router.get('/top-errors', async (req, res) => {
       last_seen: r.last_seen,
     })));
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Dashboard]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -260,7 +264,8 @@ router.get('/error-spike', async (req, res) => {
       isSpike,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Dashboard]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -303,7 +308,8 @@ router.get('/heatmap', async (req, res) => {
     const maxCount = Math.max(...cells.map((c) => c.count), 1);
     res.json({ cells, maxCount });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Dashboard]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -334,7 +340,8 @@ router.get('/recent-fatals', async (req, res) => {
       timestamp: l.timestamp,
     })));
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Dashboard]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -374,7 +381,8 @@ router.get('/today-vs-yesterday', async (req, res) => {
 
     res.json({ today: summarize(todayStats), yesterday: summarize(yesterdayStats) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Dashboard]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -404,7 +412,8 @@ router.get('/app-breakdown', async (req, res) => {
     const data = Object.values(dataMap).sort((a, b) => b.total - a.total);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Dashboard]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

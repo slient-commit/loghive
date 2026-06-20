@@ -437,6 +437,11 @@
       <a class="sb-link" href="#deploy-dokploy">Dokploy</a>
     </div>
 
+    <div class="sb-group">
+      <span class="sb-label">Security</span>
+      <a class="sb-link" href="#security">Overview</a>
+    </div>
+
   </aside>
 
   <!-- ── Main content ─────────────────────────────────────────────────────── -->
@@ -546,9 +551,10 @@ curl -X POST https://your-domain.com/api/apps/$UUID/keys \
           <table>
             <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
             <tbody>
-              <tr><td>JWT_SECRET</td><td>—</td><td>Secret key for signing JWTs. Use a long random string.</td></tr>
+              <tr><td>JWT_SECRET</td><td>—</td><td><strong>Required.</strong> Minimum 32 characters. The API will refuse to start if this is missing or too short.</td></tr>
               <tr><td>JWT_EXPIRES_IN</td><td><code>7d</code></td><td>JWT expiry duration (e.g. <code>1d</code>, <code>7d</code>).</td></tr>
               <tr><td>APP_URL</td><td><code>http://localhost:3000</code></td><td>Public URL used in emails (reset links, verify links).</td></tr>
+              <tr><td>ALLOWED_ORIGINS</td><td><em>all</em></td><td>Comma-separated list of allowed CORS origins. E.g. <code>https://yourdomain.com</code>. Leave unset to allow all origins (dev only).</td></tr>
               <tr><td>PORT</td><td><code>3001</code></td><td>API server port.</td></tr>
             </tbody>
           </table>
@@ -603,8 +609,24 @@ curl -X POST https://your-domain.com/api/apps/$UUID/keys \
               <tr><td>RESEND_FROM_EMAIL</td><td><code>alerts@loghive.dev</code></td><td>Default sender address for Resend.</td></tr>
               <tr><td>EMAIL_DAILY_LIMIT_ORG</td><td><code>10</code></td><td>Max emails per org per day (notifications, fatal alerts, invites).</td></tr>
               <tr><td>EMAIL_DAILY_LIMIT_PREAUTH</td><td><code>5</code></td><td>Max emails per address per day for pre-auth flows (forgot password, verify email).</td></tr>
+              <tr><td>EMAIL_DAILY_LIMIT_IP</td><td><code>10</code></td><td>Max emails per IP address per day (registration, forgot password, verify email). Prevents abuse from a single source.</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="env-group">
+          <div class="env-group-title">Rate Limiting</div>
+          <table>
+            <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td>INGEST_RATE_LIMIT</td><td><code>1000</code></td><td>Max ingestion requests per minute per app. Applies to <code>POST /api/ingest</code> and <code>/api/ingest/batch</code>.</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout callout-info" style="margin-top:12px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Built-in rate limits are also applied to: <strong>login</strong> (10 attempts / 15 min), <strong>registration</strong> (5 / hour per IP), and <strong>pre-auth emails</strong> (5 / 15 min). These limits are hardcoded and don't require configuration.</span>
+          </div>
         </div>
       </div>
 
@@ -624,7 +646,7 @@ curl -X POST https://your-domain.com/api/apps/$UUID/keys \
             <span class="endpoint-auth auth-none">Public</span>
           </div>
           <div class="endpoint-body">
-            <p class="endpoint-desc">Create a new organization and admin account. Sends a verification email to confirm the address before login is allowed.</p>
+            <p class="endpoint-desc">Create a new organization and admin account. Sends a verification email to confirm the address before login is allowed. Rate-limited to 5 registrations per hour per IP. Password must be at least 8 characters with uppercase, lowercase, and a number.</p>
             <table>
               <thead><tr><th>Body field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
               <tbody>
@@ -646,7 +668,7 @@ curl -X POST https://your-domain.com/api/apps/$UUID/keys \
             <span class="endpoint-auth auth-none">Public</span>
           </div>
           <div class="endpoint-body">
-            <p class="endpoint-desc">Authenticate and receive a JWT token. Email must be verified first.</p>
+            <p class="endpoint-desc">Authenticate and receive a JWT token. Email must be verified first. Rate-limited to 10 attempts per 15 minutes per IP.</p>
             <table>
               <thead><tr><th>Body field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
               <tbody>
@@ -697,7 +719,7 @@ curl -X POST https://your-domain.com/api/apps/$UUID/keys \
             <span class="endpoint-auth auth-none">Public</span>
           </div>
           <div class="endpoint-body">
-            <p class="endpoint-desc">Sends a password reset link. Always returns success to prevent email enumeration. Rate-limited to <code>EMAIL_DAILY_LIMIT_PREAUTH</code> (default 5) emails per address per day.</p>
+            <p class="endpoint-desc">Sends a password reset link. Always returns success to prevent email enumeration. Rate-limited to <code>EMAIL_DAILY_LIMIT_PREAUTH</code> (default 5) per address and <code>EMAIL_DAILY_LIMIT_IP</code> (default 10) per IP per day.</p>
             <table>
               <thead><tr><th>Body field</th><th>Type</th><th>Required</th></tr></thead>
               <tbody><tr><td>email</td><td>string</td><td>✓</td></tr></tbody>
@@ -746,7 +768,7 @@ curl -X POST https://your-domain.com/api/apps/$UUID/keys \
             <span class="endpoint-auth auth-key">API Key</span>
           </div>
           <div class="endpoint-body">
-            <p class="endpoint-desc">Send a single log entry.</p>
+            <p class="endpoint-desc">Send a single log entry. Rate-limited to <code>INGEST_RATE_LIMIT</code> (default 1000) requests per minute per app.</p>
             <table>
               <thead><tr><th>Body field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
               <tbody>
@@ -1290,6 +1312,42 @@ docker compose up -d</pre>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           <span>The <code>docker-compose.yml</code> uses <code>dokploy-network</code> as an external network so all services can reach each other by container name.</span>
         </div>
+      </div>
+
+      <hr />
+
+      <!-- SECURITY -->
+      <span class="anchor" id="security"></span>
+      <div class="doc-section">
+        <div class="section-eyebrow">Security</div>
+        <h2 class="section-title">Security</h2>
+        <p class="section-lead">LogHive includes multiple layers of protection out of the box.</p>
+
+        <table>
+          <thead><tr><th>Protection</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>Helmet</td><td>Sets secure HTTP headers — X-Frame-Options, Strict-Transport-Security, X-Content-Type-Options, Content-Security-Policy, and more.</td></tr>
+            <tr><td>CORS</td><td>Configurable origin whitelist via <code>ALLOWED_ORIGINS</code>. Restricts which domains can call the API.</td></tr>
+            <tr><td>JWT validation</td><td>API refuses to start if <code>JWT_SECRET</code> is missing or under 32 characters.</td></tr>
+            <tr><td>Rate limiting</td><td>Login (10 / 15 min), registration (5 / hour per IP), pre-auth emails (5 / 15 min), ingestion (1000 / min per app).</td></tr>
+            <tr><td>Password strength</td><td>Minimum 8 characters, must contain uppercase, lowercase, and a number.</td></tr>
+            <tr><td>Email rate limiting</td><td>Per-org, per-email, and per-IP daily limits backed by Redis counters.</td></tr>
+            <tr><td>Input sanitization</td><td>Regex patterns are escaped to prevent ReDoS. Metadata keys are validated against NoSQL injection.</td></tr>
+            <tr><td>Error sanitization</td><td>Internal error details are logged server-side but never returned to the client.</td></tr>
+            <tr><td>Password hashing</td><td>bcrypt with 12 salt rounds.</td></tr>
+            <tr><td>API key hashing</td><td>SHA-256 — raw keys are never stored in the database.</td></tr>
+            <tr><td>Role-based access</td><td><code>authorize()</code> middleware on mutation routes. <code>org_admin</code>-only gates on sensitive operations (delete rules, custom SMTP, custom recipients).</td></tr>
+          </tbody>
+        </table>
+
+        <h3 class="sub-h">Production checklist</h3>
+        <ol>
+          <li>Set <code>JWT_SECRET</code> to a random string of 32+ characters.</li>
+          <li>Set <code>ALLOWED_ORIGINS</code> to your domain(s).</li>
+          <li>Use HTTPS — terminate TLS at nginx or a reverse proxy.</li>
+          <li>Set strong passwords for MySQL, MongoDB, and Redis.</li>
+          <li>Review rate limits for your expected traffic volume.</li>
+        </ol>
       </div>
 
     </div><!-- /content -->

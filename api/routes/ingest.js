@@ -1,11 +1,22 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { validateApiKey } = require('../middleware/apiKey');
 const { enqueueLog, enqueueBatch } = require('../queues/logQueue');
 
 const router = express.Router();
 
+// Rate limit per API key (app) — 1000 requests per minute
+const ingestLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: parseInt(process.env.INGEST_RATE_LIMIT) || 1000,
+  keyGenerator: (req) => req.app_uuid || req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Ingestion rate limit exceeded. Please slow down.' },
+});
+
 // Single log ingestion
-router.post('/', validateApiKey, async (req, res) => {
+router.post('/', validateApiKey, ingestLimiter, async (req, res) => {
   try {
     const { level, message, tags, metadata, timestamp } = req.body;
 
@@ -27,7 +38,7 @@ router.post('/', validateApiKey, async (req, res) => {
 });
 
 // Batch log ingestion
-router.post('/batch', validateApiKey, async (req, res) => {
+router.post('/batch', validateApiKey, ingestLimiter, async (req, res) => {
   try {
     const { logs } = req.body;
 

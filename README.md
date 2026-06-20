@@ -13,6 +13,7 @@ A self-hosted log monitoring platform. Ingest, search, group, and analyze logs f
 - **Fatal alerts** — instant email on first FATAL log occurrence per day (deduped via Redis)
 - **Multi-app, multi-user** — organizations with role-based access, member invites, per-app API key management
 - **SDKs** — zero-dependency Node.js, Python 3.7+, and .NET Standard 2.0
+- **Security** — Helmet security headers, CORS origin restriction, rate limiting on login/register/ingestion, password strength enforcement, input sanitization (regex/NoSQL injection prevention), IP-based email rate limiting, sanitized error responses
 
 ---
 
@@ -25,6 +26,7 @@ A self-hosted log monitoring platform. Ingest, search, group, and analyze logs f
 | Frontend | React · Ant Design · Recharts · React Query |
 | Email | Resend · Nodemailer (custom SMTP) |
 | Scheduling | node-cron |
+| Security | Helmet · express-rate-limit · bcrypt · Redis rate counters |
 | Deployment | Docker Compose · Dokploy |
 
 ---
@@ -68,8 +70,11 @@ loghive/
 Create a `.env` file at the root:
 
 ```env
-JWT_SECRET=change-me-to-a-random-string
+JWT_SECRET=change-me-to-a-random-string   # Required, minimum 32 characters
 JWT_EXPIRES_IN=7d
+
+# CORS — comma-separated allowed origins (omit to allow all in dev)
+# ALLOWED_ORIGINS=https://your-domain.com
 
 MYSQL_HOST=your-mysql-host
 MYSQL_PORT=3306
@@ -93,9 +98,11 @@ APP_URL=https://your-domain.com
 RESEND_API_KEY=re_xxxxxxxxxxxx
 RESEND_FROM_EMAIL=alerts@your-domain.com
 
-# Email rate limits (emails per address/org per day)
-EMAIL_DAILY_LIMIT_ORG=10      # notifications, fatal alerts, invitations
-EMAIL_DAILY_LIMIT_PREAUTH=5   # forgot-password, resend-verification
+# Rate limits
+EMAIL_DAILY_LIMIT_ORG=10      # emails per org per day (notifications, fatal alerts, invitations)
+EMAIL_DAILY_LIMIT_PREAUTH=5   # emails per address per day (forgot-password, resend-verification)
+EMAIL_DAILY_LIMIT_IP=10       # emails per IP per day (registration, forgot-password, resend-verification)
+INGEST_RATE_LIMIT=1000        # ingestion requests per minute per app
 ```
 
 ### 3. Run
@@ -312,6 +319,34 @@ Notification rules let you schedule email digests for your log data.
 | `recipients` | Array of email addresses (when `recipient_type` is `custom`) |
 | `email_config_type` | `system` (uses org email settings) or `custom` (rule-specific SMTP) |
 | `smtp_host` / `smtp_port` / `smtp_user` / `smtp_pass` / `smtp_from` | SMTP config (when `email_config_type` is `custom`) |
+
+---
+
+## Security
+
+LogHive includes the following security measures out of the box:
+
+| Protection | Description |
+|------------|-------------|
+| **Helmet** | Sets secure HTTP headers (X-Frame-Options, Strict-Transport-Security, X-Content-Type-Options, CSP, etc.) |
+| **CORS** | Configurable origin whitelist via `ALLOWED_ORIGINS` — restricts which domains can call the API |
+| **JWT validation** | App refuses to start if `JWT_SECRET` is missing or under 32 characters |
+| **Rate limiting** | Login (10/15min), registration (5/hour), pre-auth emails (5/15min), ingestion (1000/min per app) |
+| **Password strength** | Minimum 8 characters, must contain uppercase, lowercase, and a number |
+| **Email rate limiting** | Per-org, per-email, and per-IP daily limits (Redis-backed counters) |
+| **Input sanitization** | Regex patterns escaped to prevent ReDoS; metadata keys validated against injection |
+| **Error sanitization** | Internal error details are logged server-side but never returned to the client |
+| **Password hashing** | bcrypt with 12 salt rounds |
+| **API key hashing** | SHA-256 — raw keys are never stored |
+| **Role-based access** | `authorize()` middleware on mutation routes; `org_admin`-only gates on sensitive operations |
+
+**Production checklist:**
+
+1. Set `JWT_SECRET` to a random string of 32+ characters
+2. Set `ALLOWED_ORIGINS` to your domain(s)
+3. Use HTTPS (terminate TLS at nginx or a reverse proxy)
+4. Set strong passwords for MySQL, MongoDB, and Redis
+5. Review email rate limits for your expected volume
 
 ---
 

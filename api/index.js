@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { connectMySQL } = require('./config/mysql');
 const { connectMongoDB } = require('./config/mongodb');
 const { connectRedis } = require('./config/redis');
@@ -21,16 +22,37 @@ const dashboardRoutes = require('./routes/dashboard');
 const notificationRoutes = require('./routes/notifications');
 const emailSettingsRoutes = require('./routes/emailSettings');
 
+// ── Validate critical env vars at startup ────────────────────────────────────
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('[FATAL] JWT_SECRET must be set and at least 32 characters.');
+  process.exit(1);
+}
+
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
+// Trust proxy (nginx) so req.ip returns the real client IP
+app.set('trust proxy', 1);
+
+// ── Security middleware ──────────────────────────────────────────────────────
+app.use(helmet());
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : undefined; // undefined = allow all in dev; set ALLOWED_ORIGINS in production
+
+app.use(cors({
+  origin: allowedOrigins || true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
+}));
+
 app.use(express.json({ limit: '10mb' }));
 
 // Routes
 app.get('/', (req, res) => {
-  res.json({ message: 'Log Hive API is running' });
+  res.json({ message: 'LogHive API is running' });
 });
 
 app.use('/api/auth', authRoutes);
@@ -41,6 +63,12 @@ app.use('/api/logs', logRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/settings/email', emailSettingsRoutes);
+
+// ── Global error handler — never leak internals to client ────────────────────
+app.use((err, req, res, _next) => {
+  console.error('[Unhandled]', err);
+  res.status(err.status || 500).json({ error: 'Internal server error' });
+});
 
 // Start server
 const start = async () => {
@@ -56,7 +84,7 @@ const start = async () => {
   await startScheduler();
 
   app.listen(port, () => {
-    console.log(`Log Hive API running on http://localhost:${port}`);
+    console.log(`LogHive API running on http://localhost:${port}`);
   });
 };
 

@@ -2,12 +2,47 @@ const express = require('express');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const { User, Organization } = require('../models');
 const { authenticate } = require('../middleware/auth');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail } = require('../services/email');
-const { checkPreAuthLimit } = require('../services/emailRateLimit');
+const { checkPreAuthLimit, checkIpLimit } = require('../services/emailRateLimit');
 
 const router = express.Router();
+
+// ── Rate limiters ────────────────────────────────────────────────────────────
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,                   // 10 attempts per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again later.' },
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,                    // 5 registrations per IP per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many registration attempts. Please try again later.' },
+});
+
+const preAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' },
+});
+
+// ── Password strength validation ─────────────────────────────────────────────
+const validatePassword = (password) => {
+  if (!password || password.length < 8) return 'Password must be at least 8 characters';
+  if (!/[A-Z]/.test(password)) return 'Password must contain an uppercase letter';
+  if (!/[a-z]/.test(password)) return 'Password must contain a lowercase letter';
+  if (!/[0-9]/.test(password)) return 'Password must contain a number';
+  return null;
+};
 
 // Generates a URL-safe slug from a name, appending a short random suffix on collision
 const generateSlug = async (name) => {
@@ -29,11 +64,14 @@ const generateSlug = async (name) => {
 };
 
 // Register (creates org + admin user)
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
   try {
     const { email, password, organization_name, first_name, last_name } = req.body;
 
     if (!organization_name) return res.status(400).json({ error: 'organization_name is required' });
+
+    const pwError = validatePassword(password);
+    if (pwError) return res.status(400).json({ error: pwError });
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
@@ -63,19 +101,22 @@ router.post('/register', async (req, res) => {
       verification_token_expires: new Date(Date.now() + 86400000), // 24 hours
     });
 
-    // Send verification email (non-blocking)
-    sendVerificationEmail({ to: email, token: verificationToken, organizationName: organization.name });
+    // Send verification email (IP-gated, non-blocking)
+    const ip = req.ip || req.connection?.remoteAddress;
+    const ipOk = await checkIpLimit(ip);
+    if (ipOk) sendVerificationEmail({ to: email, token: verificationToken, organizationName: organization.name });
 
     res.status(201).json({
       message: 'Account created. Please check your email to verify your account.',
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('[Auth] Register error:', error.message);
+    res.status(400).json({ error: 'Registration failed. Please try again.' });
   }
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -104,7 +145,8 @@ router.post('/login', async (req, res) => {
       organization: { id: user.Organization.id, name: user.Organization.name },
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Auth] Login error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -131,12 +173,13 @@ router.put('/settings', authenticate, async (req, res) => {
       receive_fatal_emails: user.receive_fatal_emails,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('[Auth] Settings update error:', error.message);
+    res.status(400).json({ error: 'Failed to update settings' });
   }
 });
 
 // Forgot password — sends reset email
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', preAuthLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -156,18 +199,23 @@ router.post('/forgot-password', async (req, res) => {
     });
 
     const canSend = await checkPreAuthLimit(email);
-    if (canSend) sendPasswordResetEmail({ to: email, token });
+    const ipOk = await checkIpLimit(req.ip || req.connection?.remoteAddress);
+    if (canSend && ipOk) sendPasswordResetEmail({ to: email, token });
 
     res.json({ message: 'If that email exists, a reset link has been sent' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Auth] Forgot password error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Reset password — validates token and sets new password
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', preAuthLimiter, async (req, res) => {
   try {
     const { token, password } = req.body;
+
+    const pwError = validatePassword(password);
+    if (pwError) return res.status(400).json({ error: pwError });
 
     const hash = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -189,7 +237,8 @@ router.post('/reset-password', async (req, res) => {
 
     res.json({ message: 'Password has been reset. You can now log in.' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Auth] Reset password error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -197,6 +246,9 @@ router.post('/reset-password', async (req, res) => {
 router.post('/accept-invite', async (req, res) => {
   try {
     const { token, password } = req.body;
+
+    const pwError = validatePassword(password);
+    if (pwError) return res.status(400).json({ error: pwError });
 
     const hash = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -230,7 +282,8 @@ router.post('/accept-invite', async (req, res) => {
       organization: { id: user.Organization.id, name: user.Organization.name },
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Auth] Accept invite error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -276,12 +329,13 @@ router.get('/verify-email', async (req, res) => {
       organization: { id: user.Organization.id, name: user.Organization.name },
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Auth] Verify email error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Resend verification email
-router.post('/resend-verification', async (req, res) => {
+router.post('/resend-verification', preAuthLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -304,11 +358,13 @@ router.post('/resend-verification', async (req, res) => {
     });
 
     const canSend = await checkPreAuthLimit(email);
-    if (canSend) sendVerificationEmail({ to: email, token: verificationToken, organizationName: user.Organization.name });
+    const ipOk = await checkIpLimit(req.ip || req.connection?.remoteAddress);
+    if (canSend && ipOk) sendVerificationEmail({ to: email, token: verificationToken, organizationName: user.Organization.name });
 
     res.json({ message: 'If that email exists and is unverified, a new link has been sent' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Auth] Resend verification error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

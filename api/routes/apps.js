@@ -14,7 +14,8 @@ router.get('/', async (req, res) => {
     });
     res.json(apps);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Apps]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -38,7 +39,8 @@ router.post('/', authorize('org_admin', 'member'), async (req, res) => {
 
     res.status(201).json(app);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('[Apps]', error.message);
+    res.status(400).json({ error: 'Invalid request' });
   }
 });
 
@@ -51,7 +53,8 @@ router.get('/:uuid', async (req, res) => {
     if (!app) return res.status(404).json({ error: 'App not found' });
     res.json(app);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Apps]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -67,7 +70,8 @@ router.put('/:uuid', authorize('org_admin', 'member'), async (req, res) => {
     await app.update({ name, description, environment, status });
     res.json(app);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('[Apps]', error.message);
+    res.status(400).json({ error: 'Invalid request' });
   }
 });
 
@@ -96,7 +100,8 @@ router.post('/:uuid/keys', authorize('org_admin', 'member'), async (req, res) =>
       message: 'Save this key now. It will not be shown again.',
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('[Apps]', error.message);
+    res.status(400).json({ error: 'Invalid request' });
   }
 });
 
@@ -114,7 +119,8 @@ router.get('/:uuid/keys', async (req, res) => {
     });
     res.json(keys);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Apps]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -133,7 +139,8 @@ router.delete('/:uuid/keys/:keyId', authorize('org_admin', 'member'), async (req
     await apiKey.update({ is_active: false });
     res.json({ message: 'API key revoked' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Apps]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

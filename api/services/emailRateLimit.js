@@ -57,4 +57,27 @@ const checkPreAuthLimit = async (email) => {
   }
 };
 
-module.exports = { checkOrgLimit, checkPreAuthLimit };
+/**
+ * IP-based limit — prevents a single IP from triggering too many emails
+ * (registrations, forgot-password, resend-verification).
+ * Env: EMAIL_DAILY_LIMIT_IP (default 10)
+ * Does NOT throw — silently returns false so callers skip sending without leaking info.
+ */
+const checkIpLimit = async (ip) => {
+  if (!ip) return true;
+  const limit = parseInt(process.env.EMAIL_DAILY_LIMIT_IP) || 10;
+  const normalized = ip.replace(/^::ffff:/, ''); // strip IPv4-mapped prefix
+  const key = `rl:ip:${normalized}:${todayUTC()}`;
+  try {
+    await checkAndIncrement(key, limit);
+    return true;
+  } catch (err) {
+    if (err.code === 'EMAIL_RATE_LIMIT') {
+      console.warn(`[EmailRateLimit] IP limit reached for ${normalized}`);
+      return false;
+    }
+    throw err;
+  }
+};
+
+module.exports = { checkOrgLimit, checkPreAuthLimit, checkIpLimit };

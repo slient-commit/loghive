@@ -21,7 +21,8 @@ router.get('/meta/apps', async (req, res) => {
     });
     res.json(apps);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Notifications]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -34,7 +35,8 @@ router.get('/meta/members', async (req, res) => {
     });
     res.json(users);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Notifications]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -47,7 +49,8 @@ router.get('/', async (req, res) => {
     });
     res.json(rules);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Notifications]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -60,7 +63,8 @@ router.get('/:uuid', async (req, res) => {
     if (!rule) return res.status(404).json({ error: 'Not found' });
     res.json(rule);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Notifications]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -113,7 +117,8 @@ router.post('/', adminOrMember, async (req, res) => {
 
     res.status(201).json(rule);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Notifications]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -153,7 +158,8 @@ router.put('/:uuid', adminOrMember, async (req, res) => {
 
     res.json(rule);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Notifications]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -173,7 +179,8 @@ router.patch('/:uuid/toggle', adminOrMember, async (req, res) => {
 
     res.json({ enabled: rule.enabled });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Notifications]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -188,7 +195,8 @@ router.post('/:uuid/test', adminOrMember, async (req, res) => {
     await enqueueDigest(rule.id, { isTest: true });
     res.json({ message: 'Test digest queued — email will arrive within seconds' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Notifications]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -204,7 +212,8 @@ router.delete('/:uuid', adminOnly, async (req, res) => {
     await rule.destroy();
     res.json({ message: 'Deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Notifications]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

@@ -4,6 +4,12 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Escape regex special chars to prevent ReDoS / injection
+const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Sanitize metadata key — only allow alphanumeric, underscores, dots
+const sanitizeMetaKey = (key) => /^[a-zA-Z0-9_.]+$/.test(key) ? key : null;
+
 router.use(authenticate);
 
 // Query logs (dashboard)
@@ -40,14 +46,15 @@ router.get('/:appUuid', async (req, res) => {
       if (req.query.to) query.timestamp.$lte = new Date(req.query.to);
     }
     if (req.query.search) {
-      query.$text = { $search: req.query.search };
+      query.message = { $regex: escapeRegex(req.query.search), $options: 'i' };
     }
     if (req.query.metaKey && req.query.metaValue) {
-      query[`metadata.${req.query.metaKey}`] = req.query.metaValue;
+      const safeKey = sanitizeMetaKey(req.query.metaKey);
+      if (safeKey) query[`metadata.${safeKey}`] = req.query.metaValue;
     }
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 50, 200));
     const skip = (page - 1) * limit;
 
     const [logs, total] = await Promise.all([
@@ -65,7 +72,8 @@ router.get('/:appUuid', async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Logs]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -101,7 +109,8 @@ router.get('/:appUuid/stats', async (req, res) => {
 
     res.json(stats);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Logs]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -120,7 +129,8 @@ router.get('/:appUuid/tags', async (req, res) => {
 
     res.json(tags.filter(Boolean).sort());
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Logs]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -145,7 +155,7 @@ router.get('/:appUuid/group', async (req, res) => {
     }
     if (req.query.level) matchStage.level = req.query.level;
     if (req.query.tag) matchStage.tags = req.query.tag;
-    if (req.query.search) matchStage.message = { $regex: req.query.search, $options: 'i' };
+    if (req.query.search) matchStage.message = { $regex: escapeRegex(req.query.search), $options: 'i' };
 
     let groupField;
     if (by === 'level') {
@@ -153,7 +163,9 @@ router.get('/:appUuid/group', async (req, res) => {
     } else if (by === 'tag') {
       groupField = '$tags';
     } else if (by === 'metadata' && metaKey) {
-      groupField = `$metadata.${metaKey}`;
+      const safeMetaKey = sanitizeMetaKey(metaKey);
+      if (!safeMetaKey) return res.status(400).json({ error: 'Invalid metadata key' });
+      groupField = `$metadata.${safeMetaKey}`;
     } else {
       return res.status(400).json({ error: 'Invalid group by. Use: level, tag, or metadata with metaKey' });
     }
@@ -180,7 +192,7 @@ router.get('/:appUuid/group', async (req, res) => {
 
     // Filter grouped results by key value (case-insensitive substring match)
     if (req.query.groupSearch) {
-      pipeline.push({ $match: { _id: { $regex: req.query.groupSearch, $options: 'i' } } });
+      pipeline.push({ $match: { _id: { $regex: escapeRegex(req.query.groupSearch), $options: 'i' } } });
     }
 
     pipeline.push(
@@ -197,7 +209,8 @@ router.get('/:appUuid/group', async (req, res) => {
       sample: g.sample,
     })));
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('[Logs]', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

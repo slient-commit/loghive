@@ -30,7 +30,8 @@ router.get('/', async (req, res) => {
     delete data.smtp_pass;
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[EmailSettings]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -56,7 +57,8 @@ router.put('/', requireAdmin, async (req, res) => {
     await s.save();
     res.json({ message: 'Email settings saved' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[EmailSettings]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -94,7 +96,8 @@ router.post('/test', requireAdmin, async (req, res) => {
 
     res.json({ message: `Test email sent to ${to}` });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[EmailSettings]', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
