@@ -1,0 +1,209 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Rubik', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #2b2833;
+  background: #faf9fb;
+}
+
+/* ── Ant Design Overrides ── */
+
+/* Cards — clean, breathable */
+.ant-card {
+  border-radius: 8px !important;
+  border-color: #e4e2e8 !important;
+  box-shadow: 0 1px 2px rgba(43, 40, 51, 0.04) !important;
+}
+
+.ant-card .ant-card-body {
+  padding: 20px !important;
+}
+
+.ant-card .ant-card-head {
+  min-height: 44px !important;
+  padding: 0 20px !important;
+  border-bottom-color: #e4e2e8 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.ant-card .ant-card-head-title {
+  padding: 12px 0 !important;
+}
+
+/* Stats — clear hierarchy */
+.ant-statistic .ant-statistic-title {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #8c869a !important;
+  margin-bottom: 4px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.ant-statistic .ant-statistic-content {
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+}
+
+/* Tables — readable rows */
+.ant-table-wrapper .ant-table {
+  font-size: 13px;
+  border: 1px solid #e4e2e8;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.6px !important;
+  color: #8c869a !important;
+  background: #f6f5f8 !important;
+  padding: 10px 16px !important;
+  border-bottom: 2px solid #e4e2e8 !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  padding: 12px 16px !important;
+  border-bottom-color: #f0eff2 !important;
+  line-height: 1.6 !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: #f6f5f8 !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+/* Tabs — clear active state */
+.ant-tabs .ant-tabs-tab {
+  padding: 10px 0 !important;
+  font-size: 13px !important;
+  color: #8c869a !important;
+}
+
+.ant-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #2b2833 !important;
+  font-weight: 600 !important;
+}
+
+.ant-tabs .ant-tabs-ink-bar {
+  background: #6c47ff !important;
+  height: 2px !important;
+}
+
+/* Sidebar — clean dark */
+.ant-menu-dark {
+  background: transparent !important;
+}
+
+.ant-menu-dark .ant-menu-item {
+  border-radius: 6px !important;
+  margin: 2px 10px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 13px !important;
+  color: #b5b0bd !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  color: #e7e5ea !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected {
+  background: rgba(108, 71, 255, 0.18) !important;
+  color: #c4b8ff !important;
+}
+
+/* Form — comfortable spacing */
+.ant-form-item {
+  margin-bottom: 20px !important;
+}
+
+.ant-input, .ant-select-selector, .ant-picker {
+  border-color: #d8d5de !important;
+  border-radius: 6px !important;
+}
+
+.ant-input:focus, .ant-input-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: #6c47ff !important;
+  box-shadow: 0 0 0 3px rgba(108, 71, 255, 0.08) !important;
+}
+
+/* Buttons — clear actions */
+.ant-btn-primary {
+  background: #6c47ff !important;
+  border-color: #6c47ff !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 2px rgba(108, 71, 255, 0.2) !important;
+}
+
+.ant-btn-primary:hover {
+  background: #5a38e0 !important;
+  border-color: #5a38e0 !important;
+}
+
+.ant-btn-default {
+  border-radius: 6px !important;
+}
+
+/* Tags — subtle */
+.ant-tag {
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  line-height: 20px !important;
+  padding: 0 8px !important;
+  font-weight: 500 !important;
+}
+
+/* Modal */
+.ant-modal .ant-modal-content {
+  border-radius: 10px !important;
+}
+
+/* Segmented */
+.ant-segmented {
+  border-radius: 6px !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d8d5de;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b5b0bd;
+}
+
+/* Monospace for code/data */
+.mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}

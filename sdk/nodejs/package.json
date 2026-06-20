@@ -1,0 +1,10 @@
+{
+  "name": "loghive-sdk",
+  "version": "1.0.0",
+  "description": "Node.js SDK for LogHive log ingestion",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "keywords": ["logging", "loghive", "sdk"],
+  "author": "",
+  "license": "SEE LICENSE IN LICENSE"
+}

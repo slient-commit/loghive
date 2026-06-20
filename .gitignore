@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+.windsurf
+.trae
+.roo
+.qoder
+.opencode
+.kiro
+.github
+.gemini
+.cursor
+.continue
+.codex
+.codebuddy
+.agent
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build output
+build/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+*.pid
+
+# Misc
+.claude/
+cmd.txt
+
+# dotnet
+.vs/
+bin/
+obj/

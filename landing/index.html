@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LogHive — Self-Hosted Log Monitoring</title>
+  <meta name="description" content="Ingest, search, group and analyze logs from all your applications. Self-hosted. Source-available. Built for developers." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & tokens ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    :root {
+      --bg:        #F7F6F2;
+      --bg-warm:   #EEECE6;
+      --surface:   #FFFFFF;
+      --border:    #E2DFDA;
+      --border-dk: #C5C1B9;
+      --text:      #18181B;
+      --sub:       #52525B;
+      --muted:     #A1A1AA;
+      --accent:    #D97706;       /* amber */
+      --accent-lt: #FEF3C7;       /* amber tint */
+      --accent-dk: #92400E;       /* amber dark */
+      --green:     #16A34A;
+      --green-lt:  #DCFCE7;
+      --red:       #DC2626;
+      --red-lt:    #FEE2E2;
+      --warn:      #CA8A04;
+      --warn-lt:   #FEF9C3;
+      --fatal:     #9333EA;
+      --fatal-lt:  #F3E8FF;
+      --code-bg:   #1C1917;       /* warm charcoal — only dark element */
+      --code-text: #F5F5F4;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.10);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, h5 {
+      font-family: 'Space Grotesk', sans-serif;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    a { text-decoration: none; color: inherit; }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600; font-size: 14px;
+      padding: 10px 22px; border-radius: 6px;
+      cursor: pointer; border: none; white-space: nowrap;
+      transition: background 180ms, box-shadow 180ms, transform 150ms, color 180ms;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-solid {
+      background: var(--text);
+      color: var(--surface);
+    }
+    .btn-solid:hover { background: #27272A; box-shadow: var(--shadow-md); }
+
+    .btn-amber {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-amber:hover { background: #B45309; box-shadow: 0 4px 16px rgba(217,119,6,0.35); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--sub);
+      border: 1px solid var(--border-dk);
+    }
+    .btn-ghost:hover { border-color: var(--text); color: var(--text); background: rgba(0,0,0,0.03); }
+
+    /* ── Navbar ──────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(247,246,242,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1160px; margin: 0 auto; padding: 0 24px;
+      height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 32px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px;
+    }
+    .logo-mark {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; color: var(--bg);
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .nav-links { display: flex; gap: 28px; font-size: 14px; color: var(--sub); }
+    .nav-links a { transition: color 150ms; font-weight: 500; }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ── Hero ────────────────────────────────────────────── */
+    .hero {
+      padding: 140px 24px 80px;
+      max-width: 1160px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 64px; align-items: center;
+    }
+    @media (max-width: 860px) { .hero { grid-template-columns: 1fr; padding-top: 100px; } }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 20px;
+    }
+    .hero-eyebrow-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    }
+
+    .hero-h1 {
+      font-size: clamp(38px, 5.5vw, 64px);
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .hero-h1 em {
+      font-style: normal;
+      color: var(--accent);
+      border-bottom: 3px solid var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 17px; color: var(--sub); line-height: 1.7;
+      max-width: 440px; margin-bottom: 32px;
+    }
+
+    /* ── Log preview panel ───────────────────────────────── */
+    .log-panel {
+      background: var(--code-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .log-chrome {
+      display: flex; align-items: center; gap: 6px;
+      padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .log-row {
+      display: flex; gap: 12px; align-items: baseline;
+      padding: 7px 16px; border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      animation: slideIn 0.3s ease both;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .log-ts  { color: #78716C; flex-shrink: 0; }
+    .log-msg { color: #D6D3D1; }
+    .lv {
+      font-size: 10px; font-weight: 700; padding: 1px 6px;
+      border-radius: 3px; letter-spacing: 0.3px; flex-shrink: 0; line-height: 18px;
+    }
+    .lv-info  { background: #14532D; color: #86EFAC; }
+    .lv-warn  { background: #78350F; color: #FCD34D; }
+    .lv-error { background: #7F1D1D; color: #FCA5A5; }
+    .lv-fatal { background: #4C1D95; color: #C4B5FD; }
+    .lv-debug { background: #292524; color: #A8A29E; }
+
+    /* ── Strip ───────────────────────────────────────────── */
+    .strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      padding: 32px 24px;
+    }
+    .strip-inner {
+      max-width: 1160px; margin: 0 auto;
+      display: flex; flex-wrap: wrap; gap: 0;
+    }
+    .strip-item {
+      flex: 1; min-width: 160px;
+      padding: 12px 32px;
+      border-right: 1px solid var(--border);
+    }
+    .strip-item:last-child { border-right: none; }
+    .strip-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 36px; font-weight: 800; color: var(--text);
+      letter-spacing: -2px; line-height: 1;
+    }
+    .strip-num span { color: var(--accent); }
+    .strip-label { font-size: 13px; color: var(--sub); margin-top: 4px; }
+
+    /* ── Section scaffold ────────────────────────────────── */
+    .section { padding: 96px 24px; }
+    .section-label {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--accent);
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 2px; margin-bottom: 20px;
+    }
+    .section-h2 {
+      font-size: clamp(28px, 4vw, 44px); font-weight: 800;
+      color: var(--text); margin-bottom: 16px;
+    }
+    .section-lead { font-size: 17px; color: var(--sub); line-height: 1.7; max-width: 540px; }
+
+    /* ── Feature list (Features section) ────────────────── */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2px; /* gap = visible border trick */
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+    .feat-item {
+      background: var(--surface);
+      padding: 36px;
+      transition: background 180ms;
+    }
+    .feat-item:hover { background: var(--bg); }
+    .feat-icon {
+      width: 40px; height: 40px;
+      border: 1.5px solid var(--border-dk);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+      background: var(--bg);
+    }
+    .feat-title {
+      font-size: 16px; font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+      margin-bottom: 8px; color: var(--text);
+    }
+    .feat-desc { font-size: 14px; color: var(--sub); line-height: 1.65; }
+
+    /* ── Steps ───────────────────────────────────────────── */
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: grid; grid-template-columns: 60px 1fr;
+      gap: 24px; padding: 32px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-n {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 48px; font-weight: 800; color: var(--border-dk);
+      line-height: 1;
+    }
+    .step-title {
+      font-size: 20px; font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+      margin-bottom: 8px; color: var(--text);
+    }
+    .step-desc { font-size: 15px; color: var(--sub); line-height: 1.7; }
+
+    /* ── Code tabs ───────────────────────────────────────── */
+    .code-wrap {
+      background: var(--code-bg);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+    .code-tabs {
+      display: flex; gap: 2px; padding: 12px 16px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .code-tab {
+      padding: 6px 14px 10px;
+      font-size: 12px; font-weight: 600; font-family: 'Space Grotesk', sans-serif;
+      color: #78716C; cursor: pointer; border: none; background: none;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: color 150ms, border-color 150ms;
+    }
+    .code-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; line-height: 1.75;
+      padding: 24px; overflow-x: auto; margin: 0;
+    }
+
+    /* ── Notification rule card ──────────────────────────── */
+    .rule-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 20px 24px;
+    }
+    .rule-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .rule-row:last-child { border-bottom: none; }
+    .rule-key { color: var(--muted); }
+    .rule-val { color: var(--text); font-weight: 500; }
+
+    /* ── Level tags ─────────────────────────────────────── */
+    .ltag {
+      display: inline-block; padding: 1px 8px; border-radius: 3px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+    }
+
+    /* ── Checklist ───────────────────────────────────────── */
+    .check-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 14px; color: var(--sub); padding: 5px 0;
+    }
+    .check-item svg { flex-shrink: 0; margin-top: 2px; }
+
+    /* ── Terminal (deploy) ───────────────────────────────── */
+    .terminal {
+      background: var(--code-bg);
+      border-radius: 10px; overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+    .term-bar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    /* ── Deploy cards ────────────────────────────────────── */
+    .dep-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border); border-top: none;
+    }
+    .dep-card {
+      background: var(--surface);
+      padding: 24px; transition: background 150ms;
+    }
+    .dep-card:hover { background: var(--bg); }
+    .dep-card-icon { margin-bottom: 12px; }
+    .dep-card-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; font-family: 'Space Grotesk', sans-serif; }
+    .dep-card-desc  { font-size: 13px; color: var(--sub); line-height: 1.5; }
+
+    /* ── CTA section ─────────────────────────────────────── */
+    .cta-section {
+      background: var(--text);
+      color: #fff;
+      padding: 96px 24px; text-align: center;
+    }
+    .cta-section h2 {
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 800; color: #fff; margin-bottom: 16px;
+    }
+    .cta-section p { font-size: 17px; color: #A1A1AA; margin-bottom: 36px; }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    footer {
+      background: var(--text); color: #fff;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 32px 24px;
+    }
+    .foot-inner {
+      max-width: 1160px; margin: 0 auto;
+      display: flex; flex-wrap: wrap; align-items: center;
+      justify-content: space-between; gap: 16px;
+    }
+    .foot-links { display: flex; flex-wrap: wrap; gap: 24px; font-size: 13px; color: #71717A; }
+    .foot-links a { transition: color 150ms; }
+    .foot-links a:hover { color: #fff; }
+
+    /* ── Tag pills ───────────────────────────────────────── */
+    .pill {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 99px; font-size: 11px; font-weight: 600;
+      border: 1px solid; margin: 2px;
+    }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .strip-item { padding: 12px 16px; }
+      .step { grid-template-columns: 40px 1fr; }
+      .step-n { font-size: 32px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ── Navbar ────────────────────────────────────────────── -->
+<nav aria-label="Site navigation">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" aria-label="LogHive">
+      <div class="logo-mark">L</div>
+      LogHive
+    </a>
+    <div class="nav-links" role="list">
+      <a href="#features" role="listitem">Features</a>
+      <a href="#how-it-works" role="listitem">How it works</a>
+      <a href="#sdks" role="listitem">SDKs</a>
+      <a href="#deploy" role="listitem">Deploy</a>
+      <a href="/docs" role="listitem">Docs</a>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <a href="https://github.com/slient-commit/loghive" target="_blank" rel="noopener" class="btn btn-ghost" style="padding:8px 16px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.92.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        GitHub
+      </a>
+      <a href="/register" class="btn btn-amber">Get started</a>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ── Hero ──────────────────────────────────────────────── -->
+<section style="padding:0 0 0">
+  <div class="hero">
+
+    <!-- Left -->
+    <div>
+      <p class="hero-eyebrow">
+        <span class="hero-eyebrow-dot" aria-hidden="true"></span>
+        Source-Available · Self-hosted
+      </p>
+      <h1 class="hero-h1">
+        Log monitoring<br/>
+        that stays<br/>
+        <em>on your servers</em>
+      </h1>
+      <p class="hero-sub">
+        Ingest, search, group, and analyze logs from all your apps.
+        Real-time dashboards, scheduled email digests, and SDKs for
+        Node.js, Python &amp; .NET.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+        <a href="/register" class="btn btn-amber" style="font-size:15px;padding:12px 28px">
+          Get started free
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#features" class="btn btn-ghost" style="font-size:15px;padding:12px 24px">See features</a>
+      </div>
+      <!-- Tech stack pills -->
+      <div style="margin-top:28px;display:flex;flex-wrap:wrap;gap:6px">
+        <span style="font-size:11px;color:var(--muted);width:100%;margin-bottom:4px">Stack:</span>
+        <span class="pill" style="background:var(--green-lt);border-color:#BBF7D0;color:#166534">Node.js</span>
+        <span class="pill" style="background:var(--bg-warm);border-color:var(--border-dk);color:var(--sub)">MongoDB</span>
+        <span class="pill" style="background:var(--bg-warm);border-color:var(--border-dk);color:var(--sub)">Redis</span>
+        <span class="pill" style="background:var(--bg-warm);border-color:var(--border-dk);color:var(--sub)">React</span>
+        <span class="pill" style="background:var(--accent-lt);border-color:#FDE68A;color:var(--accent-dk)">Docker</span>
+      </div>
+    </div>
+
+    <!-- Right: log terminal -->
+    <div class="log-panel" role="img" aria-label="Log Explorer preview">
+      <div class="log-chrome">
+        <div class="dot" style="background:#FF5F57"></div>
+        <div class="dot" style="background:#FEBC2E"></div>
+        <div class="dot" style="background:#28C840"></div>
+        <span style="margin-left:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#78716C">LogHive / log-explorer</span>
+        <span style="margin-left:auto;display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#16A34A">
+          <span style="width:5px;height:5px;border-radius:50%;background:#16A34A;display:inline-block"></span>
+          live
+        </span>
+      </div>
+
+      <div style="padding:8px 0">
+        <div class="log-row" style="animation-delay:0.05s">
+          <span class="log-ts">06:42:01</span>
+          <span class="lv lv-info">INFO</span>
+          <span class="log-msg">auth.login succeeded · userId=<span style="color:#86EFAC">9823</span></span>
+        </div>
+        <div class="log-row" style="animation-delay:0.15s">
+          <span class="log-ts">06:42:04</span>
+          <span class="lv lv-warn">WARN</span>
+          <span class="log-msg">Slow query <span style="color:#FCD34D">1842ms</span> · orders.findMany</span>
+        </div>
+        <div class="log-row" style="animation-delay:0.25s">
+          <span class="log-ts">06:42:07</span>
+          <span class="lv lv-error">ERROR</span>
+          <span class="log-msg">Payment timeout · orderId=<span style="color:#FCA5A5">ord_1kRz</span></span>
+        </div>
+        <div class="log-row" style="animation-delay:0.35s">
+          <span class="log-ts">06:42:09</span>
+          <span class="lv lv-info">INFO</span>
+          <span class="log-msg">email.send done · <span style="color:#86EFAC">248</span> recipients</span>
+        </div>
+        <div class="log-row" style="animation-delay:0.45s">
+          <span class="log-ts">06:42:11</span>
+          <span class="lv lv-fatal">FATAL</span>
+          <span class="log-msg">worker.process · <span style="color:#C4B5FD">OutOfMemoryError</span></span>
+        </div>
+        <div class="log-row" style="animation-delay:0.55s">
+          <span class="log-ts">06:42:13</span>
+          <span class="lv lv-debug">DEBUG</span>
+          <span class="log-msg">Cache warmed · <span style="color:#A8A29E">14392 keys / 312ms</span></span>
+        </div>
+        <div class="log-row" style="animation-delay:0.65s">
+          <span class="log-ts">06:42:15</span>
+          <span class="lv lv-info">INFO</span>
+          <span class="log-msg">webhook.delivered · jobId=<span style="color:#86EFAC">job_99Fa</span></span>
+        </div>
+      </div>
+
+      <!-- Stats bar -->
+      <div style="display:flex;gap:0;border-top:1px solid rgba(255,255,255,0.07);font-family:'JetBrains Mono',monospace;font-size:11px">
+        <span style="padding:10px 16px;color:#16A34A;border-right:1px solid rgba(255,255,255,0.07)">INFO 48233</span>
+        <span style="padding:10px 16px;color:#CA8A04;border-right:1px solid rgba(255,255,255,0.07)">WARN 3891</span>
+        <span style="padding:10px 16px;color:#DC2626;border-right:1px solid rgba(255,255,255,0.07)">ERR 1284</span>
+        <span style="padding:10px 16px;color:#9333EA">FATAL 12</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ── Stats strip ────────────────────────────────────────── -->
+<div class="strip">
+  <div class="strip-inner">
+    <div class="strip-item">
+      <div class="strip-num">500<span>+</span></div>
+      <div class="strip-label">logs per second</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-num">3</div>
+      <div class="strip-label">official SDKs</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-num">5</div>
+      <div class="strip-label">log levels</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-num">100<span>%</span></div>
+      <div class="strip-label">self-hosted</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── Features ───────────────────────────────────────────── -->
+<section id="features" class="section" style="background:var(--bg-warm)">
+  <div class="wrap">
+    <p class="section-label">Features</p>
+    <h2 class="section-h2">Everything in one place</h2>
+    <p class="section-lead" style="margin-bottom:48px">From raw ingestion to weekly digests — no third-party service required.</p>
+
+    <div class="feat-grid">
+
+      <div class="feat-item">
+        <div class="feat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </div>
+        <div class="feat-title">Log Explorer</div>
+        <div class="feat-desc">Filter by level, tags, date, metadata. Group by any field with instant drill-down. Export to JSON or CSV.</div>
+        <div style="margin-top:14px;display:flex;flex-wrap:wrap">
+          <span class="pill" style="background:var(--bg-warm);border-color:var(--border-dk);color:var(--sub)">Full-text search</span>
+          <span class="pill" style="background:var(--bg-warm);border-color:var(--border-dk);color:var(--sub)">Grouping</span>
+          <span class="pill" style="background:var(--bg-warm);border-color:var(--border-dk);color:var(--sub)">Export</span>
+        </div>
+      </div>
+
+      <div class="feat-item">
+        <div class="feat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <div class="feat-title">Live Dashboard</div>
+        <div class="feat-desc">Org-wide KPIs, log trends, app health by error ratio, peak hours heatmap, top errors, today vs yesterday.</div>
+        <div style="margin-top:14px;display:flex;flex-wrap:wrap">
+          <span class="pill" style="background:var(--green-lt);border-color:#BBF7D0;color:#166534">Heatmap</span>
+          <span class="pill" style="background:var(--red-lt);border-color:#FECACA;color:#991B1B">Spike alerts</span>
+        </div>
+      </div>
+
+      <div class="feat-item">
+        <div class="feat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="feat-title">Email Digests</div>
+        <div class="feat-desc">Cron-scheduled digests at custom UTC times. Filter, group, and batch logs — split into multiple emails with delay.</div>
+        <div style="margin-top:14px;display:flex;flex-wrap:wrap">
+          <span class="pill" style="background:var(--accent-lt);border-color:#FDE68A;color:var(--accent-dk)">Resend</span>
+          <span class="pill" style="background:var(--accent-lt);border-color:#FDE68A;color:var(--accent-dk)">Custom SMTP</span>
+        </div>
+      </div>
+
+      <div class="feat-item">
+        <div class="feat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="feat-title">Fatal Alerts</div>
+        <div class="feat-desc">Instant email on the first FATAL log per day. Redis-deduplicated — one alert, not hundreds.</div>
+        <div style="margin-top:14px;display:flex;flex-wrap:wrap">
+          <span class="pill" style="background:var(--fatal-lt);border-color:#E9D5FF;color:#7C3AED">Deduplication</span>
+          <span class="pill" style="background:var(--fatal-lt);border-color:#E9D5FF;color:#7C3AED">Instant send</span>
+        </div>
+      </div>
+
+      <div class="feat-item">
+        <div class="feat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="feat-title">High-throughput Queue</div>
+        <div class="feat-desc">BullMQ + Redis-backed ingestion. Batching, deduplication by fingerprint, and retry logic — handles any burst.</div>
+        <div style="margin-top:14px;display:flex;flex-wrap:wrap">
+          <span class="pill" style="background:var(--bg-warm);border-color:var(--border-dk);color:var(--sub)">500+ logs/s</span>
+          <span class="pill" style="background:var(--bg-warm);border-color:var(--border-dk);color:var(--sub)">Batch API</span>
+        </div>
+      </div>
+
+      <div class="feat-item">
+        <div class="feat-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="feat-title">Multi-app / Multi-user</div>
+        <div class="feat-desc">Organizations, role-based access, member invites, and per-app API keys. All data isolated per application.</div>
+        <div style="margin-top:14px;display:flex;flex-wrap:wrap">
+          <span class="pill" style="background:var(--bg-warm);border-color:var(--border-dk);color:var(--sub)">Roles</span>
+          <span class="pill" style="background:var(--bg-warm);border-color:var(--border-dk);color:var(--sub)">API keys</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ── How it works ───────────────────────────────────────── -->
+<section id="how-it-works" class="section" style="background:var(--surface)">
+  <div class="wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start">
+
+    <div>
+      <p class="section-label">How it works</p>
+      <h2 class="section-h2">Running in 3 steps</h2>
+      <p class="section-lead">No managed infrastructure, no monthly bill. Your logs stay where you host them.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-n" aria-hidden="true">01</span>
+        <div>
+          <div class="step-title">Deploy with Docker Compose</div>
+          <p class="step-desc">Add your database credentials to <code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg);padding:1px 5px;border-radius:3px">.env</code>, run <code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg);padding:1px 5px;border-radius:3px">docker compose up -d</code>. The API and frontend start in under a minute.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n" aria-hidden="true">02</span>
+        <div>
+          <div class="step-title">Create an app &amp; API key</div>
+          <p class="step-desc">Register, create your first application in the dashboard, and generate an API key. Takes 30 seconds.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n" aria-hidden="true">03</span>
+        <div>
+          <div class="step-title">Install an SDK &amp; start logging</div>
+          <p class="step-desc">Two lines of setup in Node.js, Python, or .NET. Logs appear in real time — searchable, filterable, exportable.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ── SDK section ────────────────────────────────────────── -->
+<section id="sdks" class="section" style="background:var(--bg)">
+  <div class="wrap">
+    <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:64px;align-items:start">
+
+      <div>
+        <p class="section-label">SDKs</p>
+        <h2 class="section-h2">2 lines to start logging</h2>
+        <p class="section-lead" style="margin-bottom:28px">Official, maintained libraries for the platforms you use.</p>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:flex-start;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#8CC84B" style="margin-top:2px;flex-shrink:0" aria-hidden="true"><path d="M12 1.85c-.27 0-.55.07-.78.2l-7.44 4.3c-.48.28-.78.8-.78 1.36v8.58c0 .56.3 1.08.78 1.36l1.95 1.12c.95.46 1.27.47 1.71.47 1.4 0 2.21-.85 2.21-2.33V8.44c0-.12-.1-.22-.22-.22H8.5c-.13 0-.23.1-.23.22v8.47c0 .66-.68 1.31-1.77.76L4.45 16.5a.26.26 0 0 1-.12-.22V7.71c0-.09.04-.17.12-.22l7.44-4.29c.07-.04.16-.04.22 0l7.44 4.29c.08.05.12.13.12.22v8.58c0 .08-.04.16-.12.21l-7.44 4.29c-.06.04-.15.04-.22 0L9.62 19.7c-.06-.04-.14-.04-.2 0-.62.35-.74.4-1.32.56.15.08.3.13.46.22l1.94 1.12c.23.13.5.2.78.2s.55-.07.78-.2l7.44-4.29c.48-.28.78-.8.78-1.36V7.71c0-.56-.3-1.08-.78-1.36L12.78 2.05c-.23-.13-.5-.2-.78-.2z"/></svg>
+            <div>
+              <div style="font-weight:600;font-size:14px;margin-bottom:2px;font-family:'Space Grotesk',sans-serif">Node.js</div>
+              <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">npm install loghive-sdk</code>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#3776AB" style="margin-top:2px;flex-shrink:0" aria-hidden="true"><path d="M11.914 0C5.82 0 6.2 2.656 6.2 2.656l.007 2.752h5.814v.826H3.912S0 5.789 0 11.969c0 6.18 3.403 5.96 3.403 5.96h2.031v-2.867s-.11-3.402 3.35-3.402h5.769s3.24.052 3.24-3.13V3.13S18.28 0 11.914 0zm-3.22 1.867c.578 0 1.048.47 1.048 1.049 0 .578-.47 1.048-1.048 1.048-.579 0-1.048-.47-1.048-1.048 0-.579.47-1.049 1.048-1.049z"/><path d="M12.086 24c6.094 0 5.714-2.656 5.714-2.656l-.007-2.752h-5.814v-.826h8.109S24 18.211 24 12.031c0-6.18-3.403-5.96-3.403-5.96h-2.031v2.867s.11 3.402-3.35 3.402H9.447s-3.24-.052-3.24 3.13v5.4S5.72 24 12.086 24zm3.22-1.867c-.578 0-1.048-.47-1.048-1.049 0-.578.47-1.048 1.048-1.048.579 0 1.048.47 1.048 1.048 0 .579-.47 1.049-1.048 1.049z"/></svg>
+            <div>
+              <div style="font-weight:600;font-size:14px;margin-bottom:2px;font-family:'Space Grotesk',sans-serif">Python</div>
+              <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">pip install loghive-sdk</code>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#512BD4" style="margin-top:2px;flex-shrink:0" aria-hidden="true"><path d="M11.5 0C5.149 0 0 5.149 0 11.5S5.149 23 11.5 23c.924 0 1.826-.114 2.691-.328l-3.814-3.813a5.743 5.743 0 0 1-1.477-1.908 5.804 5.804 0 0 1-.532-2.434 5.79 5.79 0 0 1 .532-2.432 5.744 5.744 0 0 1 1.477-1.91A5.75 5.75 0 0 1 12.3 8.7a5.79 5.79 0 0 1 2.433.533 5.744 5.744 0 0 1 1.908 1.477l3.516-3.516A11.444 11.444 0 0 0 11.5 0zm5.852 6.977l-3.516 3.516a5.744 5.744 0 0 1 .533 2.024 5.79 5.79 0 0 1-.533 2.432l4.67 4.669A11.42 11.42 0 0 0 23 11.5a11.44 11.44 0 0 0-5.648-9.523z"/></svg>
+            <div>
+              <div style="font-weight:600;font-size:14px;margin-bottom:2px;font-family:'Space Grotesk',sans-serif">.NET (C# / .NET Standard 2.0)</div>
+              <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">Add LogHive.dll reference</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code block -->
+      <div class="code-wrap">
+        <div class="code-tabs">
+          <button class="code-tab active" id="tab-node" onclick="showTab('node')">Node.js</button>
+          <button class="code-tab" id="tab-py" onclick="showTab('py')">Python</button>
+          <button class="code-tab" id="tab-cs" onclick="showTab('cs')">.NET</button>
+        </div>
+
+        <div id="pane-node">
+<pre style="color:#D6D3D1"><span style="color:#71717A">// npm install loghive-sdk</span>
+<span style="color:#A78BFA">const</span> LogHive = <span style="color:#A78BFA">require</span>(<span style="color:#86EFAC">'loghive-sdk'</span>);
+
+<span style="color:#A78BFA">const</span> logger = <span style="color:#A78BFA">new</span> LogHive({
+  <span style="color:#7DD3FC">apiKey</span>:   <span style="color:#86EFAC">'lh_your_api_key'</span>,
+  <span style="color:#7DD3FC">endpoint</span>: <span style="color:#86EFAC">'https://logs.yourco.com'</span>,
+});
+
+<span style="color:#A78BFA">await</span> logger.<span style="color:#FCD34D">info</span>(<span style="color:#86EFAC">'User signed in'</span>, {
+  <span style="color:#7DD3FC">tags</span>:     [<span style="color:#86EFAC">'auth'</span>],
+  <span style="color:#7DD3FC">metadata</span>: { <span style="color:#7DD3FC">userId</span>: <span style="color:#FB923C">42</span> },
+});
+
+logger.<span style="color:#FCD34D">queue</span>(<span style="color:#86EFAC">'warn'</span>, <span style="color:#86EFAC">'Slow query'</span>, { <span style="color:#7DD3FC">metadata</span>: { <span style="color:#7DD3FC">ms</span>: <span style="color:#FB923C">1842</span> } });
+<span style="color:#A78BFA">await</span> logger.<span style="color:#FCD34D">shutdown</span>();</pre>
+        </div>
+
+        <div id="pane-py" style="display:none">
+<pre style="color:#D6D3D1"><span style="color:#71717A"># pip install loghive-sdk</span>
+<span style="color:#A78BFA">from</span> loghive <span style="color:#A78BFA">import</span> LogHive
+
+logger = LogHive(
+    api_key  = <span style="color:#86EFAC">"lh_your_api_key"</span>,
+    endpoint = <span style="color:#86EFAC">"https://logs.yourco.com"</span>,
+)
+
+logger.<span style="color:#FCD34D">info</span>(<span style="color:#86EFAC">"User signed in"</span>,
+    tags=[<span style="color:#86EFAC">"auth"</span>], metadata={<span style="color:#86EFAC">"user_id"</span>: <span style="color:#FB923C">42</span>})
+
+<span style="color:#A78BFA">with</span> LogHive(api_key=<span style="color:#86EFAC">"..."</span>, endpoint=<span style="color:#86EFAC">"..."</span>) <span style="color:#A78BFA">as</span> log:
+    log.<span style="color:#FCD34D">fatal</span>(<span style="color:#86EFAC">"Unhandled exception"</span>, tags=[<span style="color:#86EFAC">"critical"</span>])</pre>
+        </div>
+
+        <div id="pane-cs" style="display:none">
+<pre style="color:#D6D3D1"><span style="color:#A78BFA">using</span> LogHive;
+
+<span style="color:#A78BFA">var</span> logger = <span style="color:#A78BFA">new</span> LogHiveClient(
+    <span style="color:#86EFAC">"lh_your_api_key"</span>,
+    <span style="color:#86EFAC">"https://logs.yourco.com"</span>
+);
+
+<span style="color:#A78BFA">await</span> logger.<span style="color:#FCD34D">InfoAsync</span>(<span style="color:#86EFAC">"App started"</span>);
+<span style="color:#A78BFA">await</span> logger.<span style="color:#FCD34D">ErrorAsync</span>(<span style="color:#86EFAC">"Payment failed"</span>,
+    tags: <span style="color:#A78BFA">new</span>[] { <span style="color:#86EFAC">"payments"</span> });
+
+logger.<span style="color:#FCD34D">Queue</span>(<span style="color:#86EFAC">"warn"</span>, <span style="color:#86EFAC">"High memory usage"</span>);
+<span style="color:#A78BFA">await</span> logger.<span style="color:#FCD34D">ShutdownAsync</span>();</pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ── Notification digest ─────────────────────────────────── -->
+<section style="background:var(--bg-warm);padding:96px 24px;border-top:1px solid var(--border)">
+  <div class="wrap">
+    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:72px;align-items:start">
+
+      <div>
+        <p class="section-label">Notifications</p>
+        <h2 class="section-h2">Scheduled digests,<br/>exactly how you want them</h2>
+        <p class="section-lead" style="margin-bottom:28px">Configure rules from the UI. Each rule runs on cron schedule, queries your logs, and sends clean email tables — grouped, filtered, batched.</p>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="check-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Multiple UTC times per day (e.g. 09:00 and 18:00)
+          </div>
+          <div class="check-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Last 24h or custom interval (e.g. last 3.5 hours)
+          </div>
+          <div class="check-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Filter by app, level, metadata
+          </div>
+          <div class="check-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Group by level, tag, or metadata key
+          </div>
+          <div class="check-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Split into batches with configurable delay
+          </div>
+          <div class="check-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Resend or any custom SMTP provider
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule preview -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="rule-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <span style="font-weight:700;font-family:'Space Grotesk',sans-serif">Daily error summary</span>
+            <span style="font-size:11px;font-weight:700;color:var(--green);background:var(--green-lt);border:1px solid #BBF7D0;border-radius:99px;padding:2px 10px">Active</span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-key">Schedule</span>
+            <span class="rule-val" style="font-family:'JetBrains Mono',monospace;font-size:12px">09:00, 18:00 UTC</span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-key">Time range</span>
+            <span class="rule-val">Last 9 hours</span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-key">Levels</span>
+            <span class="rule-val" style="display:flex;gap:4px">
+              <span class="ltag" style="background:var(--red-lt);color:#991B1B">ERROR</span>
+              <span class="ltag" style="background:var(--fatal-lt);color:#7C3AED">FATAL</span>
+            </span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-key">Group by</span>
+            <span class="rule-val">Level</span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-key">Batch</span>
+            <span class="rule-val" style="font-family:'JetBrains Mono',monospace;font-size:12px">20 lines · 6 s delay</span>
+          </div>
+          <div class="rule-row" style="border-bottom:none">
+            <span class="rule-key">Recipients</span>
+            <span class="rule-val">All org members</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px">
+          <a href="#" class="btn btn-ghost" style="flex:1;justify-content:center;font-size:13px;padding:9px 16px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit rule
+          </a>
+          <a href="#" class="btn btn-amber" style="flex:1;justify-content:center;font-size:13px;padding:9px 16px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Send test
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ── Deploy ─────────────────────────────────────────────── -->
+<section id="deploy" style="background:var(--surface);padding:96px 24px;border-top:1px solid var(--border)">
+  <div class="wrap">
+    <p class="section-label">Deploy</p>
+    <h2 class="section-h2" style="margin-bottom:8px">Your server. Your data.</h2>
+    <p class="section-lead" style="margin-bottom:36px">No managed cloud required. Works on any Linux box running Docker.</p>
+
+    <!-- Terminal -->
+    <div class="terminal" style="max-width:640px;margin-bottom:2px">
+      <div class="term-bar">
+        <div class="dot" style="background:#FF5F57"></div>
+        <div class="dot" style="background:#FEBC2E"></div>
+        <div class="dot" style="background:#28C840"></div>
+        <span style="margin-left:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#78716C">bash</span>
+      </div>
+<pre style="color:#D6D3D1"><span style="color:#78716C"># clone & configure</span>
+<span style="color:#86EFAC">git</span> clone https://github.com/your-org/loghive.git
+<span style="color:#86EFAC">cd</span> loghive &amp;&amp; cp .env.example .env
+
+<span style="color:#78716C"># launch API + frontend + workers</span>
+<span style="color:#86EFAC">docker</span> compose up -d
+
+<span style="color:#78716C">✓  API  →  :3001</span>
+<span style="color:#78716C">✓  App  →  :80</span></pre>
+    </div>
+
+    <div class="dep-grid">
+      <div class="dep-card">
+        <div class="dep-card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="dep-card-title">100% private</div>
+        <div class="dep-card-desc">No log leaves your network. Ever.</div>
+      </div>
+      <div class="dep-card">
+        <div class="dep-card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </div>
+        <div class="dep-card-title">No usage limits</div>
+        <div class="dep-card-desc">As many logs as your hardware handles.</div>
+      </div>
+      <div class="dep-card">
+        <div class="dep-card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <div class="dep-card-title">Source-Available</div>
+        <div class="dep-card-desc">Fork it, extend it, audit every line.</div>
+      </div>
+      <div class="dep-card">
+        <div class="dep-card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <div class="dep-card-title">Dokploy ready</div>
+        <div class="dep-card-desc">One Docker Compose deploy, shared network.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── CTA ────────────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="wrap">
+    <p style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:16px">Get started</p>
+    <h2>Stop sending logs<br/>to someone else's server</h2>
+    <p>Deploy in minutes. Own your data. Pay nothing.</p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px">
+      <a href="/register" class="btn btn-amber" style="font-size:15px;padding:13px 32px">
+        Create free account
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a href="https://github.com/slient-commit/loghive" target="_blank" rel="noopener" class="btn" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);font-size:15px;padding:13px 32px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.92.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── Footer ─────────────────────────────────────────────── -->
+<footer>
+  <div class="foot-inner">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="logo-mark" style="background:var(--accent);width:26px;height:26px;font-size:13px">L</div>
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700">LogHive</span>
+      <span style="color:#52525B;font-size:13px">— Source-Available Non-Commercial & No-SaaS License</span>
+    </div>
+    <div class="foot-links">
+      <a href="#features">Features</a>
+      <a href="#sdks">SDKs</a>
+      <a href="#deploy">Deploy</a>
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/slient-commit/loghive" target="_blank" rel="noopener">GitHub</a>
+    </div>
+    <p style="font-size:12px;color:#52525B">Node.js · React · MongoDB · Redis</p>
+  </div>
+</footer>
+
+
+<script>
+  function showTab(lang) {
+    ['node','py','cs'].forEach(function(l) {
+      document.getElementById('pane-' + l).style.display = l === lang ? 'block' : 'none';
+      var t = document.getElementById('tab-' + l);
+      t.classList.toggle('active', l === lang);
+    });
+  }
+
+  // Smooth scroll with navbar offset
+  document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      var id = this.getAttribute('href').slice(1);
+      if (!id) return;
+      var el = document.getElementById(id);
+      if (!el) return;
+      e.preventDefault();
+      window.scrollTo({ top: el.offsetTop - 68, behavior: 'smooth' });
+    });
+  });
+</script>
+
+</body>
+</html>
