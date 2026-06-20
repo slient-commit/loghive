@@ -9,7 +9,7 @@ A self-hosted log monitoring platform. Ingest, search, group, and analyze logs f
 - **Log ingestion** — single and batch endpoints secured by per-app API keys
 - **Log Explorer** — filter by level, tags, date range, and metadata; group by level, tag, or any metadata key with drill-down
 - **Dashboard** — org-wide KPIs, log trends, app health status, peak hours heatmap, top errors, today vs yesterday comparison
-- **Notification rules** — scheduled email digests (cron-based), configurable time ranges, level filters, grouping, batching with per-email line limits and send delays; supports Resend and custom SMTP
+- **Notification rules** — scheduled email digests (cron-based) with day-of-week selection, configurable time ranges, level filters, grouping with clickable group links, batching with per-email line limits and send delays; three email templates (Default, Microsoft Teams, Custom HTML), configurable column visibility and custom column labels, custom subject templates, all-clear emails when no logs match; supports Resend and custom SMTP
 - **Fatal alerts** — instant email on first FATAL log occurrence per day (deduped via Redis)
 - **Multi-app, multi-user** — organizations with role-based access, member invites, per-app API key management
 - **SDKs** — zero-dependency Node.js, Python 3.7+, and .NET Standard 2.0
@@ -275,33 +275,43 @@ Notification rules let you schedule email digests for your log data.
   "name": "Daily error summary",
   "enabled": true,
   "schedule_times": ["09:00", "18:00"],
+  "schedule_days": [1, 2, 3, 4, 5],
   "time_range_type": "interval",
   "time_range_hours": 9,
   "app_uuids": [],
   "log_levels": ["ERROR", "FATAL"],
   "group_by": "level",
+  "group_link_url": "https://app.example.com/logs?level={grouping_value}",
   "lines_per_email": 20,
   "email_delay_seconds": 6,
+  "subject_template": "[{rule_name}] {log_count} issue(s) on {date}",
+  "email_template_type": "default",
   "recipient_type": "org_users",
-  "email_provider": "resend"
+  "email_config_type": "system"
 }
 ```
 
 | Field | Description |
 |-------|-------------|
 | `schedule_times` | UTC times to run, e.g. `["09:00", "17:00"]` |
+| `schedule_days` | Days of week to run: `[0..6]` where 0=Sun, 6=Sat. Empty array = every day |
 | `time_range_type` | `last_24h` or `interval` |
 | `time_range_hours` | Hours to look back (used when type is `interval`) |
 | `app_uuids` | Apps to include — empty array means all apps |
 | `log_levels` | Levels to include — `["ERROR", "FATAL", "WARN"]` |
 | `group_by` | `none`, `level`, `tag`, or `metadata` |
 | `group_meta_key` | Metadata key to group by (when `group_by` is `metadata`) |
+| `group_link_url` | URL template for grouped values — use `{grouping_value}` as a variable |
 | `lines_per_email` | Max rows per email — excess rows go into follow-up emails |
 | `email_delay_seconds` | Seconds to wait between batched emails |
+| `subject_template` | Custom email subject — supports `{rule_name}`, `{date}`, `{time}`, `{app_names}`, `{log_count}`, `{levels}`, `{range}` |
+| `email_template_type` | `default` (styled), `teams` (plain HTML for Microsoft Teams), or `custom` |
+| `email_template_custom` | Custom HTML body (when type is `custom`) — supports same variables + `{log_table}` |
+| `email_columns` | JSON object controlling column visibility and labels per mode: `{ grouped: { col_key: { show?, label? } }, flat: { ... } }` |
 | `recipient_type` | `org_users` (all members) or `custom` |
 | `recipients` | Array of email addresses (when `recipient_type` is `custom`) |
-| `email_provider` | `resend` or `smtp` |
-| `smtp_host` / `smtp_port` / `smtp_user` / `smtp_pass` / `smtp_from` | SMTP config (when provider is `smtp`) |
+| `email_config_type` | `system` (uses org email settings) or `custom` (rule-specific SMTP) |
+| `smtp_host` / `smtp_port` / `smtp_user` / `smtp_pass` / `smtp_from` | SMTP config (when `email_config_type` is `custom`) |
 
 ---
 

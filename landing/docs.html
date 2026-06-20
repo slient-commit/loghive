@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
   <title>LogHive — Developer Documentation</title>
   <meta name="description" content="Full API reference, SDK guides, and deployment documentation for LogHive." />
 
@@ -957,7 +962,7 @@ curl -X POST https://your-domain.com/api/apps/$UUID/keys \
       <div class="doc-section">
         <div class="section-eyebrow">Notifications</div>
         <h2 class="section-title">Notification Rules</h2>
-        <p class="section-lead">Notification rules schedule email digests of your log data. Each rule runs on a cron schedule (UTC times), queries logs for the configured time range, and sends them in batched emails.</p>
+        <p class="section-lead">Notification rules schedule email digests of your log data. Each rule runs on a cron schedule (UTC times and days of week), queries logs for the configured time range, and sends them in batched emails. When no logs match, an "All clear!" email is sent instead. The test endpoint fires immediately regardless of the enabled state.</p>
 
         <div class="endpoint">
           <div class="endpoint-head">
@@ -981,14 +986,20 @@ curl -X POST https://your-domain.com/api/apps/$UUID/keys \
               <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
               <tbody>
                 <tr><td>name</td><td>string</td><td>—</td><td>Rule display name. Required.</td></tr>
-                <tr><td>enabled</td><td>boolean</td><td><code>true</code></td><td>Whether the rule runs.</td></tr>
+                <tr><td>enabled</td><td>boolean</td><td><code>true</code></td><td>Whether the rule runs on its cron schedule.</td></tr>
                 <tr><td>schedule_times</td><td>string[]</td><td>—</td><td>UTC times in <code>HH:MM</code> format, e.g. <code>["09:00","18:00"]</code>. Required.</td></tr>
+                <tr><td>schedule_days</td><td>number[]</td><td><code>[]</code></td><td>Days of week: <code>0</code>=Sun … <code>6</code>=Sat. Empty array = every day. e.g. <code>[1,2,3,4,5]</code> = Mon–Fri.</td></tr>
                 <tr><td>time_range_type</td><td>string</td><td><code>last_24h</code></td><td><code>last_24h</code> or <code>interval</code>.</td></tr>
                 <tr><td>time_range_hours</td><td>number</td><td><code>24</code></td><td>Hours to look back when type is <code>interval</code>.</td></tr>
                 <tr><td>app_uuids</td><td>string[]</td><td><code>[]</code></td><td>Apps to include. Empty array = all apps.</td></tr>
                 <tr><td>log_levels</td><td>string[]</td><td><code>["ERROR","FATAL"]</code></td><td>Log levels to include.</td></tr>
                 <tr><td>group_by</td><td>string</td><td><code>none</code></td><td><code>none</code> <code>level</code> <code>tag</code> <code>metadata</code></td></tr>
                 <tr><td>group_meta_key</td><td>string</td><td>—</td><td>Metadata key when <code>group_by=metadata</code>.</td></tr>
+                <tr><td>group_link_url</td><td>string</td><td>—</td><td>URL template for grouped values. Use <code>{grouping_value}</code> as a variable — e.g. <code>https://app.example.com/errors/{grouping_value}</code>. Makes the group column value a clickable link in the email.</td></tr>
+                <tr><td>subject_template</td><td>string</td><td>—</td><td>Custom email subject. Supports: <code>{rule_name}</code> <code>{date}</code> <code>{time}</code> <code>{app_names}</code> <code>{log_count}</code> <code>{levels}</code> <code>{range}</code>. Leave empty for the default subject.</td></tr>
+                <tr><td>email_template_type</td><td>string</td><td><code>default</code></td><td><code>default</code> — styled HTML table. <code>teams</code> — plain HTML for Microsoft Teams. <code>custom</code> — user-provided HTML body.</td></tr>
+                <tr><td>email_template_custom</td><td>string</td><td>—</td><td>Full HTML body when <code>email_template_type=custom</code>. Supports all subject variables plus <code>{log_table}</code> which injects the log table HTML.</td></tr>
+                <tr><td>email_columns</td><td>object</td><td>—</td><td>Column visibility and labels per mode. Structure: <code>{ "grouped": { "app": { "show": true, "label": "Service" } }, "flat": { "tags": { "show": false } } }</code>. Grouped keys: <code>group</code> <code>level</code> <code>count</code> <code>app</code> <code>last_seen</code> <code>sample</code>. Flat keys: <code>time</code> <code>level</code> <code>message</code> <code>app</code> <code>tags</code>.</td></tr>
                 <tr><td>lines_per_email</td><td>number</td><td><code>10</code></td><td>Max rows per email. Excess go into follow-up emails.</td></tr>
                 <tr><td>email_delay_seconds</td><td>number</td><td><code>6</code></td><td>Seconds between batched emails.</td></tr>
                 <tr><td>recipient_type</td><td>string</td><td><code>org_users</code></td><td><code>org_users</code> or <code>custom</code>.</td></tr>
@@ -1034,9 +1045,14 @@ curl -X POST https://your-domain.com/api/apps/$UUID/keys \
           <div class="endpoint-head">
             <span class="method-badge del">DELETE</span>
             <span class="endpoint-path">/api/notifications/:uuid</span>
-            <span class="endpoint-auth auth-jwt">JWT</span>
+            <span class="endpoint-auth auth-jwt">JWT — Admin</span>
           </div>
           <div class="endpoint-body"><p class="endpoint-desc">Delete a rule and stop its cron job.</p></div>
+        </div>
+
+        <div class="callout callout-tip" style="margin-top:8px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span><strong>All-clear email:</strong> when a rule fires but no logs match the filters, an "All clear!" email is sent instead of silently skipping. <strong>Test endpoint:</strong> fires immediately regardless of the rule's <code>enabled</code> state and bypasses rate limits.</span>
         </div>
       </div>
 

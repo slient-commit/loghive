@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
   <title>LogHive — Self-Hosted Log Monitoring</title>
   <meta name="description" content="Ingest, search, group and analyze logs from all your applications. Self-hosted. Source-available. Built for developers." />
 
@@ -600,7 +605,7 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         </div>
         <div class="feat-title">Email Digests</div>
-        <div class="feat-desc">Cron-scheduled digests at custom UTC times. Filter, group, and batch logs — split into multiple emails with delay.</div>
+        <div class="feat-desc">Cron-scheduled digests at custom UTC times and days of the week. Filter, group, and batch logs — Default, Teams, or custom HTML templates with configurable columns and subject.</div>
         <div style="margin-top:14px;display:flex;flex-wrap:wrap">
           <span class="pill" style="background:var(--accent-lt);border-color:#FDE68A;color:var(--accent-dk)">Resend</span>
           <span class="pill" style="background:var(--accent-lt);border-color:#FDE68A;color:var(--accent-dk)">Custom SMTP</span>
@@ -798,7 +803,7 @@ logger.<span style="color:#FCD34D">Queue</span>(<span style="color:#86EFAC">"war
         <div style="display:flex;flex-direction:column;gap:8px">
           <div class="check-item">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            Multiple UTC times per day (e.g. 09:00 and 18:00)
+            Multiple UTC times per day &amp; specific days of the week
           </div>
           <div class="check-item">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
@@ -810,15 +815,19 @@ logger.<span style="color:#FCD34D">Queue</span>(<span style="color:#86EFAC">"war
           </div>
           <div class="check-item">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            Group by level, tag, or metadata key
+            Group by level, tag, or metadata key — with clickable group links
           </div>
           <div class="check-item">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            Split into batches with configurable delay
+            Three email templates: Default, Microsoft Teams, Custom HTML
           </div>
           <div class="check-item">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            Resend or any custom SMTP provider
+            Custom subject, configurable columns, all-clear email when no logs match
+          </div>
+          <div class="check-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Split into batches with configurable delay · Resend or custom SMTP
           </div>
         </div>
       </div>
@@ -832,7 +841,7 @@ logger.<span style="color:#FCD34D">Queue</span>(<span style="color:#86EFAC">"war
           </div>
           <div class="rule-row">
             <span class="rule-key">Schedule</span>
-            <span class="rule-val" style="font-family:'JetBrains Mono',monospace;font-size:12px">09:00, 18:00 UTC</span>
+            <span class="rule-val" style="font-family:'JetBrains Mono',monospace;font-size:12px">09:00, 18:00 UTC · Mon–Fri</span>
           </div>
           <div class="rule-row">
             <span class="rule-key">Time range</span>
@@ -848,6 +857,10 @@ logger.<span style="color:#FCD34D">Queue</span>(<span style="color:#86EFAC">"war
           <div class="rule-row">
             <span class="rule-key">Group by</span>
             <span class="rule-val">Level</span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-key">Template</span>
+            <span class="rule-val">Default · custom subject</span>
           </div>
           <div class="rule-row">
             <span class="rule-key">Batch</span>
