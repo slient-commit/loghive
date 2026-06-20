@@ -10,7 +10,7 @@ const ingestLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: parseInt(process.env.INGEST_RATE_LIMIT) || 1000,
   keyGenerator: (req) => req.app_uuid || 'unknown',
-  validate: { ipKeyGenerator: false },
+  validate: false,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Ingestion rate limit exceeded. Please slow down.' },
