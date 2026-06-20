@@ -176,6 +176,14 @@ router.get('/:appUuid/group', async (req, res) => {
           sample: { $first: '$message' },
         },
       },
+    );
+
+    // Filter grouped results by key value (case-insensitive substring match)
+    if (req.query.groupSearch) {
+      pipeline.push({ $match: { _id: { $regex: req.query.groupSearch, $options: 'i' } } });
+    }
+
+    pipeline.push(
       { $sort: { count: -1 } },
       { $limit: 100 },
     );

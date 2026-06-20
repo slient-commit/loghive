@@ -35,6 +35,7 @@ export const getLogGroups = (appId, filters = {}) => {
   if (filters.level) params.level = filters.level;
   if (filters.search) params.search = filters.search;
   if (filters.tag) params.tag = filters.tag;
+  if (filters.groupSearch) params.groupSearch = filters.groupSearch;
 
   return client.get(`/api/logs/${appId}/group`, { params }).then((r) => r.data);
 };

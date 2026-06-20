@@ -28,9 +28,11 @@ const defaultFilters = {
 };
 
 function GroupView({ appUuid, groupBy, metaKey, filters, onDrillDown }) {
+  const [groupSearch, setGroupSearch] = useState('');
+
   const { data: groups, isLoading } = useQuery({
-    queryKey: ['logGroups', appUuid, groupBy, metaKey, filters.from, filters.to, filters.level, filters.search, filters.tag],
-    queryFn: () => getLogGroups(appUuid, { by: groupBy, metaKey, from: filters.from, to: filters.to, level: filters.level, search: filters.search, tag: filters.tag }),
+    queryKey: ['logGroups', appUuid, groupBy, metaKey, filters.from, filters.to, filters.level, filters.search, filters.tag, groupSearch],
+    queryFn: () => getLogGroups(appUuid, { by: groupBy, metaKey, from: filters.from, to: filters.to, level: filters.level, search: filters.search, tag: filters.tag, groupSearch: groupSearch || undefined }),
     enabled: !!appUuid && !!groupBy && (groupBy !== 'metadata' || !!metaKey),
   });
 
@@ -68,18 +70,31 @@ function GroupView({ appUuid, groupBy, metaKey, filters, onDrillDown }) {
   ];
 
   return (
-    <Table
-      dataSource={groups || []}
-      columns={columns}
-      rowKey="key"
-      loading={isLoading}
-      size="small"
-      pagination={{ pageSize: 20, size: 'small', showTotal: (t) => <Text style={{ fontSize: 12, color: '#80748c' }}>{t} groups</Text> }}
-      onRow={(record) => ({
-        onClick: () => onDrillDown(record.key),
-        style: { cursor: 'pointer' },
-      })}
-    />
+    <div>
+      <div style={{ marginBottom: 10 }}>
+        <Input.Search
+          placeholder={`Search by ${groupBy === 'metadata' ? metaKey : groupBy} value...`}
+          allowClear
+          size="small"
+          style={{ width: 280 }}
+          value={groupSearch}
+          onChange={(e) => setGroupSearch(e.target.value)}
+          onSearch={(v) => setGroupSearch(v)}
+        />
+      </div>
+      <Table
+        dataSource={groups || []}
+        columns={columns}
+        rowKey="key"
+        loading={isLoading}
+        size="small"
+        pagination={{ pageSize: 20, size: 'small', showTotal: (t) => <Text style={{ fontSize: 12, color: '#80748c' }}>{t} groups</Text> }}
+        onRow={(record) => ({
+          onClick: () => onDrillDown(record.key),
+          style: { cursor: 'pointer' },
+        })}
+      />
+    </div>
   );
 }
 
