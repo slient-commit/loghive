@@ -23,9 +23,12 @@ const notificationRoutes = require('./routes/notifications');
 const emailSettingsRoutes = require('./routes/emailSettings');
 
 // ── Validate critical env vars at startup ────────────────────────────────────
-if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-  console.error('[FATAL] JWT_SECRET must be set and at least 32 characters.');
+if (!process.env.JWT_SECRET) {
+  console.error('[FATAL] JWT_SECRET is not set. The API cannot start without it.');
   process.exit(1);
+}
+if (process.env.JWT_SECRET.length < 32) {
+  console.warn('[WARN] JWT_SECRET is shorter than 32 characters. Use a longer secret in production.');
 }
 
 const app = express();
