@@ -10,9 +10,10 @@ export const useLogs = (appId, filters = {}, options = {}) =>
     ...options,
   });
 
-export const useLogStats = (appId, filters = {}) =>
+export const useLogStats = (appId, filters = {}, options = {}) =>
   useQuery({
     queryKey: ['logStats', appId, filters],
     queryFn: () => logsApi.getLogStats(appId, filters),
     enabled: !!appId,
+    ...options,
   });

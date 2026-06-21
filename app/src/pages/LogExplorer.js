@@ -127,10 +127,17 @@ export default function LogExplorer() {
     return base;
   })();
 
-  const { data: logsData, isLoading } = useLogs(appUuid, activeFilters, {
+  // When auto-refresh is on, always use "now" as the upper bound
+  const liveFilters = autoRefresh
+    ? { ...activeFilters, to: new Date().toISOString() }
+    : activeFilters;
+
+  const { data: logsData, isLoading } = useLogs(appUuid, liveFilters, {
     refetchInterval: autoRefresh ? 10000 : false,
   });
-  const { data: stats } = useLogStats(appUuid, { from: filters.from, to: filters.to });
+  const { data: stats } = useLogStats(appUuid, { from: liveFilters.from, to: liveFilters.to }, {
+    refetchInterval: autoRefresh ? 10000 : false,
+  });
 
   const handlePageChange = (page, pageSize) => {
     if (drillDown) {
