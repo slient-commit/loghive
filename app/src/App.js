@@ -15,6 +15,7 @@ import Apps from './pages/Apps';
 import AppSettings from './pages/AppSettings';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
+import Alerts from './pages/Alerts';
 import CheckEmail from './pages/CheckEmail';
 import VerifyEmail from './pages/VerifyEmail';
 import NotFound from './pages/NotFound';
@@ -74,6 +75,7 @@ export default function App() {
               <Route path="/apps/:id/settings" element={<AppSettings />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/alerts" element={<Alerts />} />
             </Route>
 
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

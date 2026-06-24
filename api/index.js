@@ -8,6 +8,7 @@ const { connectRedis } = require('./config/redis');
 const { startLogWriter } = require('./workers/logWriter');
 const { startNotificationWorker } = require('./workers/notificationWorker');
 const { startScheduler } = require('./services/notificationScheduler');
+const { startAlertScheduler } = require('./services/alertScheduler');
 
 // Import models to register associations
 require('./models');
@@ -21,6 +22,7 @@ const logRoutes = require('./routes/logs');
 const dashboardRoutes = require('./routes/dashboard');
 const notificationRoutes = require('./routes/notifications');
 const emailSettingsRoutes = require('./routes/emailSettings');
+const alertRoutes = require('./routes/alerts');
 
 // ── Validate critical env vars at startup ────────────────────────────────────
 if (!process.env.JWT_SECRET) {
@@ -66,6 +68,7 @@ app.use('/api/logs', logRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/settings/email', emailSettingsRoutes);
+app.use('/api/alerts', alertRoutes);
 
 // ── Global error handler — never leak internals to client ────────────────────
 app.use((err, req, res, _next) => {
@@ -83,8 +86,9 @@ const start = async () => {
   startLogWriter();
   startNotificationWorker();
 
-  // Start notification cron scheduler (loads all active rules from DB)
+  // Start cron schedulers
   await startScheduler();
+  await startAlertScheduler();
 
   app.listen(port, () => {
     console.log(`LogHive API running on http://localhost:${port}`);

@@ -5,6 +5,7 @@ const AppApiKey = require('./AppApiKey');
 const UserAppAccess = require('./UserAppAccess');
 const Log = require('./Log');
 const NotificationRule = require('./NotificationRule');
+const AlertRule = require('./AlertRule');
 const OrgEmailSettings = require('./OrgEmailSettings');
 
 // Associations
@@ -23,6 +24,9 @@ App.belongsToMany(User, { through: UserAppAccess, foreignKey: 'app_id', otherKey
 Organization.hasMany(NotificationRule, { foreignKey: 'organization_id', onDelete: 'CASCADE' });
 NotificationRule.belongsTo(Organization, { foreignKey: 'organization_id' });
 
+Organization.hasMany(AlertRule, { foreignKey: 'organization_id', onDelete: 'CASCADE' });
+AlertRule.belongsTo(Organization, { foreignKey: 'organization_id' });
+
 Organization.hasOne(OrgEmailSettings, { foreignKey: 'organization_id', onDelete: 'CASCADE' });
 OrgEmailSettings.belongsTo(Organization, { foreignKey: 'organization_id' });
 
@@ -34,5 +38,6 @@ module.exports = {
   UserAppAccess,
   Log,
   NotificationRule,
+  AlertRule,
   OrgEmailSettings,
 };

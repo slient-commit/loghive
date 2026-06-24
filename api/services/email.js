@@ -581,6 +581,96 @@ const sendNotificationDigest = async ({ rule, recipients, items, isGrouped, chun
   }
 };
 
+// ── Alert email builder ──────────────────────────────────────────────────────
+const buildAlertEmail = (rule, result, appNameMap) => {
+  const fmtDate = (d) => d ? new Date(d).toUTCString().replace(' GMT', ' UTC') : '—';
+  const nameFor = (uuid) => appNameMap[uuid] || uuid || '—';
+
+  let subject, body;
+
+  if (result.type === 'error_spike') {
+    subject = `[LogHive Alert] ${rule.name} — ${result.total} errors in last ${result.window_minutes}min`;
+    const rows = (result.breakdown || []).map((r) =>
+      `<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6">${escHtml(nameFor(r._id))}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-weight:700;color:#dc2626">${r.count.toLocaleString()}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#9ca3af">${fmtDate(r.latest)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:12px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((r.sample || '').substring(0, 120))}</td>
+      </tr>`
+    ).join('');
+
+    body = `
+      <p style="font-size:14px;color:#374151;margin-bottom:16px">
+        <strong>${result.total.toLocaleString()}</strong> ${escHtml(result.levels.join('/'))} logs detected in the last
+        <strong>${result.window_minutes} minutes</strong> (threshold: ${result.threshold}).
+      </p>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+          <thead><tr style="background:#fef2f2">
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca">App</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca">Count</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca">Latest</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca">Sample</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  } else if (result.type === 'low_volume') {
+    subject = `[LogHive Alert] ${rule.name} — only ${result.actual_percentage}% of expected logs`;
+    body = `
+      <div style="text-align:center;padding:24px 0">
+        <div style="font-size:48px;font-weight:800;color:#dc2626;margin-bottom:4px">${result.actual_percentage}%</div>
+        <div style="font-size:14px;color:#6b7280">of expected log volume</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0">
+        <tr><td style="padding:6px 0;color:#6b7280;width:140px">Today's count</td><td style="padding:6px 0;font-weight:600">${result.today_count.toLocaleString()}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280">${result.baseline_days}-day average</td><td style="padding:6px 0;font-weight:600">${result.avg_count.toLocaleString()}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280">Threshold</td><td style="padding:6px 0;font-weight:600">Below ${result.threshold_percentage}%</td></tr>
+      </table>
+      <p style="font-size:13px;color:#9ca3af">This may indicate an outage, deployment issue, or misconfigured logging.</p>
+    `;
+  } else if (result.type === 'no_logs') {
+    subject = `[LogHive Alert] ${rule.name} — ${result.silent_apps.length} app(s) silent for ${result.silence_hours}h+`;
+    const rows = result.silent_apps.map((a) =>
+      `<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-weight:600">${escHtml(nameFor(a.app_uuid))}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#9ca3af;font-size:12px">${a.last_log ? fmtDate(a.last_log) : 'Never'}</td>
+      </tr>`
+    ).join('');
+
+    body = `
+      <p style="font-size:14px;color:#374151;margin-bottom:16px">
+        <strong>${result.silent_apps.length}</strong> app(s) have not sent any logs in the last
+        <strong>${result.silence_hours} hour(s)</strong>.
+      </p>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+          <thead><tr style="background:#fef9c3">
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#854d0e;border-bottom:1px solid #fde68a">App</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#854d0e;border-bottom:1px solid #fde68a">Last Log</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  const colors = { error_spike: '#dc2626', low_volume: '#d97706', no_logs: '#7c3aed' };
+  const labels = { error_spike: 'Error Spike', low_volume: 'Low Volume', no_logs: 'Silent App' };
+  const html = emailWrapper(`Alert: ${labels[result.type]}`, colors[result.type] || '#dc2626', `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px">
+      <tr><td style="padding:4px 0;color:#6b7280;width:110px">Rule</td><td style="padding:4px 0;font-weight:600">${escHtml(rule.name)}</td></tr>
+      <tr><td style="padding:4px 0;color:#6b7280">Type</td><td style="padding:4px 0">${labels[result.type]}</td></tr>
+      <tr><td style="padding:4px 0;color:#6b7280">Checked at</td><td style="padding:4px 0">${fmtDate(new Date())}</td></tr>
+    </table>
+    ${body}
+    <p style="font-size:11px;color:#9ca3af;margin-top:20px;text-align:center">Sent by LogHive · ${fmtDate(new Date())}</p>
+  `);
+
+  return { subject, html };
+};
+
 module.exports = {
   sendWelcomeEmail,
   sendInvitationEmail,
@@ -590,4 +680,6 @@ module.exports = {
   sendNotificationDigest,
   sendAllClearEmail,
   resolveEmailConfig,
+  sendWithConfig,
+  buildAlertEmail,
 };

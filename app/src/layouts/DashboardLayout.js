@@ -10,6 +10,7 @@ import {
   MenuUnfoldOutlined,
   SettingOutlined,
   BellOutlined,
+  AlertOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../auth/AuthContext';
 
@@ -19,6 +20,7 @@ const menuItems = [
   { key: '/dashboard',       icon: <DashboardOutlined />, label: 'Dashboard'     },
   { key: '/apps',            icon: <AppstoreOutlined />,  label: 'Applications'  },
   { key: '/notifications',   icon: <BellOutlined />,      label: 'Notifications' },
+  { key: '/alerts',          icon: <AlertOutlined />,     label: 'Alerts'        },
   { type: 'divider' },
   { key: '/settings',        icon: <SettingOutlined />,   label: 'Settings'      },
 ];
@@ -75,6 +77,7 @@ export default function DashboardLayout() {
           selectedKeys={[
         location.pathname.startsWith('/settings')      ? '/settings'      :
         location.pathname.startsWith('/notifications') ? '/notifications' :
+        location.pathname.startsWith('/alerts')        ? '/alerts'        :
         location.pathname
       ]}
           items={menuItems}
