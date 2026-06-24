@@ -207,3 +207,66 @@ body {
 .mono {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
+
+/* ── Mobile Responsive ── */
+@media (max-width: 768px) {
+  /* Tables: horizontal scroll */
+  .ant-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ant-table-wrapper .ant-table {
+    min-width: 500px;
+  }
+
+  /* Table cells: tighter padding */
+  .ant-table-wrapper .ant-table-thead > tr > th,
+  .ant-table-wrapper .ant-table-tbody > tr > td {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+
+  /* Cards: reduced padding */
+  .ant-card .ant-card-body {
+    padding: 14px !important;
+  }
+  .ant-card .ant-card-head {
+    padding: 0 14px !important;
+  }
+
+  /* Drawers: full width on mobile */
+  .ant-drawer .ant-drawer-content-wrapper {
+    max-width: 100vw !important;
+    width: 100vw !important;
+  }
+
+  /* Stats: smaller values */
+  .ant-statistic .ant-statistic-content {
+    font-size: 22px !important;
+  }
+
+  /* Forms: tighter spacing */
+  .ant-form-item {
+    margin-bottom: 14px !important;
+  }
+
+  /* Segmented control: smaller text */
+  .ant-segmented .ant-segmented-item-label {
+    font-size: 12px !important;
+    padding: 0 8px !important;
+  }
+
+  /* Select/Input: full width */
+  .ant-select, .ant-picker, .ant-input-number {
+    width: 100% !important;
+  }
+
+  /* Pagination: compact */
+  .ant-pagination {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .ant-pagination .ant-pagination-options {
+    display: none !important;
+  }
+}

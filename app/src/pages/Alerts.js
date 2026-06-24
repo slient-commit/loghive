@@ -441,7 +441,7 @@ export default function Alerts() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 24 }}>
         <div>
           <Text style={{ fontSize: 20, fontWeight: 700, color: '#2b2833', letterSpacing: -0.4, display: 'block' }}>
             Alert Rules

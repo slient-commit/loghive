@@ -173,7 +173,7 @@ export default function LogExplorer() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <Space>
           {drillDown && (
             <Button type="text" icon={<ArrowLeftOutlined />} onClick={handleBackToGroups} size="small" style={{ color: '#7553ff' }} />
@@ -187,7 +187,7 @@ export default function LogExplorer() {
             </Tag>
           )}
         </Space>
-        <Space size={12}>
+        <Space size={8} wrap>
           <Segmented
             size="small"
             value={drillDown ? 'list' : viewMode}
@@ -199,7 +199,7 @@ export default function LogExplorer() {
           />
           <Space size={4}>
             <ReloadOutlined style={{ fontSize: 12, color: autoRefresh ? '#7553ff' : '#b5b0bd' }} />
-            <Text style={{ fontSize: 12, color: '#80748c' }}>Auto-refresh</Text>
+            <Text style={{ fontSize: 12, color: '#80748c' }}>Auto</Text>
             <Switch checked={autoRefresh} onChange={(v) => { setAutoRefresh(v); refreshTo(); }} size="small" />
           </Space>
         </Space>
