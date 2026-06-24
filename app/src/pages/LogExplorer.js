@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Typography, Switch, Space, Skeleton, Select, Input, Table, Tag, Segmented, Button } from 'antd';
 import { ReloadOutlined, UnorderedListOutlined, GroupOutlined, ArrowLeftOutlined } from '@ant-design/icons';
@@ -107,6 +107,9 @@ export default function LogExplorer() {
   const [groupMetaKey, setGroupMetaKey] = useState('');
   const [drillDown, setDrillDown] = useState(null);
 
+  // Refresh "to" on mount so we always query up to "now"
+  useEffect(() => { setFilters((prev) => ({ ...prev, to: new Date().toISOString() })); }, [appUuid]);
+
   const { data: app } = useApp(appUuid);
 
   // When drilled down, build proper filter for the group type
@@ -127,16 +130,17 @@ export default function LogExplorer() {
     return base;
   })();
 
-  // When auto-refresh is on, always use "now" as the upper bound
-  const liveFilters = autoRefresh
-    ? { ...activeFilters, to: new Date().toISOString() }
-    : activeFilters;
+  // Always query with a fresh "to" so we don't serve stale cached data.
+  // We update filters.to in state so the query key stays stable.
+  const refreshTo = () => setFilters((prev) => ({ ...prev, to: new Date().toISOString() }));
 
-  const { data: logsData, isLoading } = useLogs(appUuid, liveFilters, {
+  const { data: logsData, isLoading } = useLogs(appUuid, activeFilters, {
     refetchInterval: autoRefresh ? 10000 : false,
+    refetchOnMount: 'always',
   });
-  const { data: stats } = useLogStats(appUuid, { from: liveFilters.from, to: liveFilters.to }, {
+  const { data: stats } = useLogStats(appUuid, { from: activeFilters.from, to: activeFilters.to }, {
     refetchInterval: autoRefresh ? 10000 : false,
+    refetchOnMount: 'always',
   });
 
   const handlePageChange = (page, pageSize) => {
@@ -196,7 +200,7 @@ export default function LogExplorer() {
           <Space size={4}>
             <ReloadOutlined style={{ fontSize: 12, color: autoRefresh ? '#7553ff' : '#b5b0bd' }} />
             <Text style={{ fontSize: 12, color: '#80748c' }}>Auto-refresh</Text>
-            <Switch checked={autoRefresh} onChange={setAutoRefresh} size="small" />
+            <Switch checked={autoRefresh} onChange={(v) => { setAutoRefresh(v); refreshTo(); }} size="small" />
           </Space>
         </Space>
       </div>
