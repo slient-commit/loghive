@@ -3,7 +3,7 @@ const { sequelize } = require('../config/mysql');
 
 const AlertRule = sequelize.define('AlertRule', {
   uuid: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, unique: true },
-  organization_id: { type: DataTypes.INTEGER, allowNull: false },
+  organization_id: { type: DataTypes.BIGINT, allowNull: false },
 
   name: { type: DataTypes.STRING, allowNull: false },
   alert_type: { type: DataTypes.ENUM('error_spike', 'low_volume', 'no_logs'), allowNull: false },
