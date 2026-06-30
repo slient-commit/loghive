@@ -260,15 +260,15 @@ const LEVEL_PALETTE = {
 // ── Column definitions ────────────────────────────────────────────────────────
 const GROUPED_COL_DEFS = [
   { key: 'group',     label: 'Group',     required: true },
-  { key: 'level',     label: 'Level',     required: true },
-  { key: 'count',     label: 'Count',     required: true },
+  { key: 'level',     label: 'Level',     required: false, defaultShow: true },
+  { key: 'count',     label: 'Count',     required: false, defaultShow: true },
   { key: 'app',       label: 'App',       required: false, defaultShow: true },
   { key: 'last_seen', label: 'Last Seen', required: false, defaultShow: true },
   { key: 'sample',    label: 'Sample',    required: false, defaultShow: true },
 ];
 const FLAT_COL_DEFS = [
   { key: 'time',    label: 'Time (UTC)', required: true },
-  { key: 'level',   label: 'Level',      required: true },
+  { key: 'level',   label: 'Level',      required: false, defaultShow: true },
   { key: 'message', label: 'Message',    required: true },
   { key: 'app',     label: 'App',        required: false, defaultShow: true },
   { key: 'tags',    label: 'Tags',       required: false, defaultShow: false },
@@ -277,13 +277,34 @@ const FLAT_COL_DEFS = [
 const resolveColumns = (rule, mode) => {
   const defs = mode === 'grouped' ? GROUPED_COL_DEFS : FLAT_COL_DEFS;
   const saved = rule.email_columns?.[mode] || {};
-  return defs
+  const cols = defs
     .filter((col) => col.required || (saved[col.key]?.show ?? col.defaultShow))
     .map((col) => ({ key: col.key, label: saved[col.key]?.label?.trim() || col.label }));
+  // Append custom columns
+  const custom = rule.email_columns?.custom || [];
+  custom.forEach((c, i) => {
+    if (c.label && c.source) cols.push({ key: `_custom_${i}`, label: c.label, custom: c });
+  });
+  return cols;
+};
+
+// ponytail: resolves custom column value from flat or grouped item
+const resolveCustomValue = (custom, item, isGrouped) => {
+  if (!custom) return '—';
+  const { source, sourceKey } = custom;
+  if (source === 'metadata') {
+    const meta = isGrouped ? item.sample_metadata : item.metadata;
+    return meta?.[sourceKey] ?? '—';
+  }
+  if (source === 'level') return (isGrouped ? item.sample_level : item.level) || '—';
+  if (source === 'tag') return (isGrouped ? item.sample_tags : item.tags || []).join(', ') || '—';
+  if (source === 'app') return (isGrouped ? item.sample_app : item.app_uuid) || '—';
+  if (source === 'message') return (isGrouped ? item.sample_message : item.message || '').substring(0, 120) || '—';
+  return '—';
 };
 
 // Returns a single <td> for the given column key, item, and template context
-const renderDefaultCell = (key, item, isGrouped, rule, appNameMap, fmtDate, tdStyle) => {
+const renderDefaultCell = (key, item, isGrouped, rule, appNameMap, fmtDate, tdStyle, col) => {
   switch (key) {
     case 'group':
       return `<td style="${tdStyle};font-weight:600">${groupValueHtml(item._id, rule, 'color:#6c47ff;font-weight:600')}</td>`;
@@ -308,11 +329,12 @@ const renderDefaultCell = (key, item, isGrouped, rule, appNameMap, fmtDate, tdSt
     case 'tags':
       return `<td style="${tdStyle}">${escHtml((item.tags || []).join(', ') || '—')}</td>`;
     default:
+      if (col?.custom) return `<td style="${tdStyle}">${escHtml(String(resolveCustomValue(col.custom, item, isGrouped)))}</td>`;
       return `<td style="${tdStyle}">—</td>`;
   }
 };
 
-const renderTeamsCell = (key, item, isGrouped, rule, appNameMap, fmtDate, td) => {
+const renderTeamsCell = (key, item, isGrouped, rule, appNameMap, fmtDate, td, col) => {
   switch (key) {
     case 'group':
       return `<td style="${td}"><b>${groupValueHtml(item._id, rule)}</b></td>`;
@@ -339,6 +361,7 @@ const renderTeamsCell = (key, item, isGrouped, rule, appNameMap, fmtDate, td) =>
     case 'tags':
       return `<td style="${td}">${escHtml((item.tags || []).join(', ') || '—')}</td>`;
     default:
+      if (col?.custom) return `<td style="${td}">${escHtml(String(resolveCustomValue(col.custom, item, isGrouped)))}</td>`;
       return `<td style="${td}">—</td>`;
   }
 };
@@ -355,7 +378,7 @@ const buildTeamsHtml = ({ rule, items, isGrouped, chunkIndex, totalChunks, total
 
   const thead = `<tr style="background:#f0f0f0">${cols.map((c) => `<th style="${th}">${escHtml(c.label)}</th>`).join('')}</tr>`;
   const rows = items.map((item) => {
-    const cells = cols.map((c) => renderTeamsCell(c.key, item, isGrouped, rule, appNameMap, fmtDate, td)).join('');
+    const cells = cols.map((c) => renderTeamsCell(c.key, item, isGrouped, rule, appNameMap, fmtDate, td, c)).join('');
     return `<tr>${cells}</tr>`;
   }).join('');
 
@@ -394,7 +417,7 @@ const buildCustomHtml = ({ rule, items, isGrouped, chunkIndex, totalChunks, tota
   const thead = `<tr style="background:#f8fafc">${cols.map((c) => `<th style="${thStyle}">${escHtml(c.label)}</th>`).join('')}</tr>`;
   const rows = items.map((item, i) => {
     const bg = i % 2 === 0 ? '#fff' : '#fafafa';
-    const cells = cols.map((c) => renderDefaultCell(c.key, item, isGrouped, rule, appNameMap, fmtDate, tdStyle)).join('');
+    const cells = cols.map((c) => renderDefaultCell(c.key, item, isGrouped, rule, appNameMap, fmtDate, tdStyle, c)).join('');
     return `<tr style="background:${bg}">${cells}</tr>`;
   }).join('');
   const logTable = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden"><thead>${thead}</thead><tbody>${rows}</tbody></table></div>`;
@@ -427,7 +450,7 @@ const buildDigestHtml = ({ rule, items, isGrouped, chunkIndex, totalChunks, tota
 
   const rows = items.map((item, i) => {
     const bg = i % 2 === 0 ? '#fff' : '#fafafa';
-    const cells = cols.map((c) => renderDefaultCell(c.key, item, isGrouped, rule, appNameMap, fmtDate, tdStyle)).join('');
+    const cells = cols.map((c) => renderDefaultCell(c.key, item, isGrouped, rule, appNameMap, fmtDate, tdStyle, c)).join('');
     return `<tr style="background:${bg}">${cells}</tr>`;
   }).join('');
 

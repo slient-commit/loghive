@@ -6,7 +6,7 @@ import {
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, SendOutlined,
-  BellOutlined, ClockCircleOutlined, MailOutlined,
+  BellOutlined, ClockCircleOutlined, MailOutlined, MinusCircleOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -23,15 +23,15 @@ const LEVEL_COLOR = { DEBUG: 'default', INFO: 'green', WARN: 'orange', ERROR: 'r
 
 const GROUPED_COL_DEFS = [
   { key: 'group',     label: 'Group',     required: true },
-  { key: 'level',     label: 'Level',     required: true },
-  { key: 'count',     label: 'Count',     required: true },
+  { key: 'level',     label: 'Level',     required: false, defaultShow: true },
+  { key: 'count',     label: 'Count',     required: false, defaultShow: true },
   { key: 'app',       label: 'App',       required: false, defaultShow: true },
   { key: 'last_seen', label: 'Last Seen', required: false, defaultShow: true },
   { key: 'sample',    label: 'Sample',    required: false, defaultShow: true },
 ];
 const FLAT_COL_DEFS = [
   { key: 'time',    label: 'Time (UTC)', required: true },
-  { key: 'level',   label: 'Level',      required: true },
+  { key: 'level',   label: 'Level',      required: false, defaultShow: true },
   { key: 'message', label: 'Message',    required: true },
   { key: 'app',     label: 'App',        required: false, defaultShow: true },
   { key: 'tags',    label: 'Tags',       required: false, defaultShow: false },
@@ -39,13 +39,13 @@ const FLAT_COL_DEFS = [
 
 const buildDefaultColConfig = () => ({
   grouped: {
-    group:    { label: '' }, level: { label: '' }, count: { label: '' },
+    group:    { label: '' }, level: { show: true, label: '' }, count: { show: true, label: '' },
     app:      { show: true,  label: '' },
     last_seen:{ show: true,  label: '' },
     sample:   { show: true,  label: '' },
   },
   flat: {
-    time:    { label: '' }, level: { label: '' }, message: { label: '' },
+    time:    { label: '' }, level: { show: true, label: '' }, message: { label: '' },
     app:     { show: true,  label: '' },
     tags:    { show: false, label: '' },
   },
@@ -164,6 +164,7 @@ function RuleDrawer({ open, rule, onClose, onSaved }) {
   const [timeRangeType, setTimeRangeType] = useState('last_24h');
   const [templateType, setTemplateType] = useState('default');
   const [colConfig, setColConfig] = useState(buildDefaultColConfig());
+  const [customCols, setCustomCols] = useState([]);
 
   const qc = useQueryClient();
 
@@ -202,6 +203,7 @@ function RuleDrawer({ open, rule, onClose, onSaved }) {
         return result;
       };
       setColConfig({ grouped: mergeMode(def.grouped, saved.grouped), flat: mergeMode(def.flat, saved.flat) });
+      setCustomCols(saved.custom || []);
     } else {
       form.resetFields();
       form.setFieldsValue({
@@ -224,6 +226,7 @@ function RuleDrawer({ open, rule, onClose, onSaved }) {
       setTimeRangeType('last_24h');
       setTemplateType('default');
       setColConfig(buildDefaultColConfig());
+      setCustomCols([]);
     }
   };
 
@@ -234,7 +237,8 @@ function RuleDrawer({ open, rule, onClose, onSaved }) {
         dayjs.isDayjs(t) ? t.format('HH:mm') : String(t)
       );
       const { schedule_times_picker: _, ...rest } = values;
-      saveMut.mutate({ ...rest, schedule_times: times, email_columns: colConfig });
+      const validCustom = customCols.filter((c) => c.label && c.source);
+      saveMut.mutate({ ...rest, schedule_times: times, email_columns: { ...colConfig, custom: validCustom } });
     } catch {
       // validation error shown by form
     }
@@ -514,6 +518,51 @@ function RuleDrawer({ open, rule, onClose, onSaved }) {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* ── Custom Columns ── */}
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.7, textTransform: 'uppercase', color: C.textMuted }}>
+              Custom Columns
+            </Text>
+            <Button
+              type="dashed" size="small" icon={<PlusOutlined />}
+              onClick={() => setCustomCols((prev) => [...prev, { label: '', source: 'metadata', sourceKey: '' }])}
+            >Add</Button>
+          </div>
+          {customCols.map((col, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+              <Input
+                size="small" placeholder="Column label" value={col.label} style={{ width: 120 }}
+                onChange={(e) => setCustomCols((prev) => prev.map((c, j) => j === i ? { ...c, label: e.target.value } : c))}
+              />
+              <Select
+                size="small" value={col.source} style={{ width: 120 }}
+                onChange={(v) => setCustomCols((prev) => prev.map((c, j) => j === i ? { ...c, source: v, sourceKey: '' } : c))}
+                options={[
+                  { value: 'metadata', label: 'Metadata' },
+                  { value: 'level', label: 'Level' },
+                  { value: 'tag', label: 'Tag' },
+                  { value: 'app', label: 'App' },
+                  { value: 'message', label: 'Message' },
+                ]}
+              />
+              {col.source === 'metadata' && (
+                <Input
+                  size="small" placeholder="Key (e.g. user_id)" value={col.sourceKey} style={{ flex: 1 }}
+                  onChange={(e) => setCustomCols((prev) => prev.map((c, j) => j === i ? { ...c, sourceKey: e.target.value } : c))}
+                />
+              )}
+              <MinusCircleOutlined
+                style={{ color: '#e5254b', cursor: 'pointer', fontSize: 16 }}
+                onClick={() => setCustomCols((prev) => prev.filter((_, j) => j !== i))}
+              />
+            </div>
+          ))}
+          {customCols.length === 0 && (
+            <Text style={{ fontSize: 11, color: C.textMuted }}>No custom columns. Click Add to create one.</Text>
+          )}
         </div>
 
         <Divider style={{ margin: '12px 0' }} />
